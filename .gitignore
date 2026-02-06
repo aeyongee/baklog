@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# prisma generated client
+/src/generated/prisma
+
 # 임시 무시 파일
 README.md
 구현명세서_MVP.md

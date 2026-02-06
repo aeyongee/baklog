@@ -6,13 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "simulate": "npx tsx scripts/simulate.ts"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",
     "openai": "^6.17.0",
+    "pg": "^8.18.0",
     "prisma": "^7.3.0",
     "react": "19.2.3",
     "react-dom": "19.2.3"
@@ -20,6 +23,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.16.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^17.2.3",

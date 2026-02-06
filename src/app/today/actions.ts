@@ -1,0 +1,293 @@
+"use server";
+
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { ensureUser } from "@/lib/user";
+import { ensureTodayPlanWithCarryOver } from "@/lib/carryOver";
+import { applyRules } from "@/lib/rules/applyRules";
+import { revalidatePath } from "next/cache";
+
+/**
+ * 오늘의 DailyPlan 및 연결된 Task 조회 (active + completed)
+ * - 자동으로 어제 미완료 Task를 carry-over
+ */
+export async function getTodayTasks() {
+  const session = await auth();
+  if (!session?.user?.email) return null;
+
+  const userId = await ensureUser({
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  });
+
+  // 1. 어제 미완료 Task를 오늘 계획에 자동 포함 (carry-over)
+  await ensureTodayPlanWithCarryOver(userId);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // 2. 룰 엔진 실행 (Q1~Q4 자동 규칙 적용)
+  await applyRules(userId, today);
+
+  // 3. 오늘 DailyPlan 조회
+  const dailyPlan = await prisma.dailyPlan.findUnique({
+    where: {
+      userId_date: { userId, date: today },
+    },
+    include: {
+      tasks: {
+        include: {
+          task: true,
+        },
+        orderBy: {
+          task: { createdAt: "desc" },
+        },
+      },
+    },
+  });
+
+  if (!dailyPlan) {
+    console.log(`[Today] userId: ${userId}, no DailyPlan found`);
+    return null;
+  }
+
+  // active와 completed Task 분리 (origin 정보 포함)
+  const allTasksWithOrigin = dailyPlan.tasks.map((dpt) => ({
+    ...dpt.task,
+    origin: dpt.origin,
+  }));
+
+  const activeTasks = allTasksWithOrigin.filter((task) => task.status === "active");
+  const completedTasks = allTasksWithOrigin.filter((task) => task.status === "completed");
+
+  // Alert 섹션용: alertAt이 있는 Q1 Task (backlogAt이 없는 것만)
+  const alertTasks = activeTasks.filter(
+    (task) => task.finalQuadrant === "Q1" && task.alertAt && !task.backlogAt
+  );
+
+  // 재조정 필요 섹션용: needsReviewAt이 있는 Q3 Task
+  const reviewTasks = activeTasks.filter(
+    (task) => task.finalQuadrant === "Q3" && task.needsReviewAt
+  );
+
+  console.log(
+    `[Today] userId: ${userId}, DailyPlan id: ${dailyPlan.id}, active: ${activeTasks.length}, completed: ${completedTasks.length}, alert: ${alertTasks.length}, review: ${reviewTasks.length}`
+  );
+
+  return {
+    dailyPlan,
+    activeTasks,
+    completedTasks,
+    alertTasks,
+    reviewTasks,
+  };
+}
+
+/**
+ * Task 완료 처리
+ */
+export async function completeTask(taskId: string) {
+  const session = await auth();
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const userId = await ensureUser({
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  });
+
+  // 본인 소유 Task인지 확인
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, userId },
+  });
+
+  if (!task) throw new Error("Task not found");
+
+  await prisma.task.update({
+    where: { id: taskId },
+    data: {
+      status: "completed",
+      completedAt: new Date(),
+      alertAt: null,
+      needsReviewAt: null,
+      backlogAt: null,
+    },
+  });
+
+  console.log(`[Complete] taskId: ${taskId} marked as completed`);
+
+  revalidatePath("/today");
+  revalidatePath("/backlog");
+}
+
+/**
+ * Task 폐기 처리
+ */
+export async function discardTask(taskId: string) {
+  const session = await auth();
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const userId = await ensureUser({
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  });
+
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, userId },
+  });
+
+  if (!task) throw new Error("Task not found");
+
+  await prisma.task.update({
+    where: { id: taskId },
+    data: {
+      status: "discarded",
+      archivedAt: new Date(),
+    },
+  });
+
+  revalidatePath("/today");
+  revalidatePath("/archive");
+}
+
+/**
+ * Q1 Alert 확인 — 긴급 유지(Q1)
+ * - alertAt을 null로 초기화하여 Alert 섹션에서 제거
+ * - finalQuadrant=Q1 유지
+ */
+export async function acknowledgeQ1Alert(taskId: string) {
+  const session = await auth();
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const userId = await ensureUser({
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  });
+
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, userId, finalQuadrant: "Q1" },
+  });
+
+  if (!task) throw new Error("Task not found or not Q1");
+
+  await prisma.task.update({
+    where: { id: taskId },
+    data: { alertAt: null },
+  });
+
+  console.log(`[Q1 Ack] taskId: ${taskId} alert acknowledged, stays Q1`);
+
+  revalidatePath("/today");
+}
+
+/**
+ * Q1 Alert → Q2로 변경 (긴급 아님)
+ * - finalQuadrant=Q2, finalUrgent=false
+ * - alertAt null 처리
+ */
+export async function moveQ1ToQ2(taskId: string) {
+  const session = await auth();
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const userId = await ensureUser({
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  });
+
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, userId, finalQuadrant: "Q1" },
+  });
+
+  if (!task) throw new Error("Task not found or not Q1");
+
+  await prisma.task.update({
+    where: { id: taskId },
+    data: {
+      finalImportant: true,
+      finalUrgent: false,
+      finalQuadrant: "Q2",
+      alertAt: null,
+    },
+  });
+
+  console.log(`[Q1→Q2] taskId: ${taskId} moved to Q2 (not urgent)`);
+
+  revalidatePath("/today");
+}
+
+/**
+ * Q3 Task를 Q2로 이동 (사실 중요함)
+ * - finalImportant = true, finalUrgent = false
+ * - finalQuadrant = Q2
+ * - needsReviewAt 초기화
+ */
+export async function moveQ3ToQ2(taskId: string) {
+  const session = await auth();
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const userId = await ensureUser({
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  });
+
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, userId, finalQuadrant: "Q3" },
+  });
+
+  if (!task) throw new Error("Task not found or not Q3");
+
+  await prisma.task.update({
+    where: { id: taskId },
+    data: {
+      finalImportant: true,
+      finalUrgent: false,
+      finalQuadrant: "Q2",
+      needsReviewAt: null, // 재조정 완료
+    },
+  });
+
+  console.log(`[Q3→Q2] taskId: ${taskId} moved to Q2 (important)`);
+
+  revalidatePath("/today");
+  revalidatePath("/backlog");
+}
+
+/**
+ * Q3 Task 폐기 (중요하지 않음)
+ */
+export async function archiveQ3Task(taskId: string) {
+  const session = await auth();
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const userId = await ensureUser({
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  });
+
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, userId, finalQuadrant: "Q3" },
+  });
+
+  if (!task) throw new Error("Task not found or not Q3");
+
+  await prisma.task.update({
+    where: { id: taskId },
+    data: {
+      status: "discarded",
+      needsReviewAt: null,
+      archivedAt: new Date(),
+    },
+  });
+
+  console.log(`[Q3→Archive] taskId: ${taskId} archived`);
+
+  revalidatePath("/today");
+  revalidatePath("/backlog");
+  revalidatePath("/archive");
+}
