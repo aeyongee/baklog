@@ -8,8 +8,9 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Baklog - Eisenhower Today Planner",
-  description: "AI-powered daily task planner based on the Eisenhower Matrix",
+  title: "Baklog - 일잘러로 거듭나기 위한 작업 관리 서비스",
+  description:
+    "나의 작업을 놓치지 않고, 우선순위에 맞게 처리될 수 있도록 도와줍니다",
 };
 
 export default function RootLayout({

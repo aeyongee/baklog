@@ -9,9 +9,9 @@ export default async function TodaySetup() {
 
   return (
     <main className="mx-auto max-w-lg p-4">
-      <h1 className="text-xl font-bold">오늘의 태스크</h1>
-      <p className="mt-1 text-sm text-gray-500">
-        할 일을 입력하고 AI에게 분류를 맡기세요.
+      <h1 className="text-xl font-bold dark:text-gray-100">오늘의 할 일 ✅</h1>
+      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        할 일을 입력하면 우선순위 분류는 AI가 해요 😁
       </p>
 
       <div className="mt-4">
@@ -23,11 +23,13 @@ export default async function TodaySetup() {
           {tasks.map((task, i) => (
             <li
               key={task.id}
-              className="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2"
+              className="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2"
             >
-              <span className="text-xs text-gray-400">{i + 1}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                {i + 1}
+              </span>
               <span className="text-sm">{task.rawText}</span>
-              <span className="ml-auto text-xs text-gray-400">
+              <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">
                 {task.status}
               </span>
             </li>
@@ -37,7 +39,7 @@ export default async function TodaySetup() {
         <div className="mt-8">
           <EmptyState
             title="오늘 할 일을 입력하세요"
-            description="위 입력란에 태스크를 하나씩 추가하면 AI가 자동으로 분류해 드립니다."
+            description="위 입력란에 작업을 하나씩 추가하면 AI가 자동으로 분류해 드립니다"
           />
         </div>
       )}

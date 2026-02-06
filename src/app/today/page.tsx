@@ -11,8 +11,8 @@ export default async function TodayDashboard() {
     return (
       <main className="p-4 max-w-2xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">오늘의 작업</h1>
-          <p className="mt-1 text-sm text-gray-400">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">오늘의 작업</h1>
+          <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
             하루를 계획하고 중요한 일에 집중하세요
           </p>
         </div>
@@ -30,11 +30,11 @@ export default async function TodayDashboard() {
   return (
     <main className="p-4 max-w-4xl mx-auto">
       <div className="mb-5">
-        <h1 className="text-2xl font-bold text-gray-900">오늘의 작업</h1>
-        <p className="mt-1 text-sm text-gray-400">
-          진행 중 <span className="font-semibold text-gray-600">{data.activeTasks.length}</span>개
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">오늘의 작업</h1>
+        <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
+          진행 중 <span className="font-semibold text-gray-600 dark:text-gray-400">{data.activeTasks.length}</span>개
           {data.completedTasks.length > 0 && (
-            <> · 완료 <span className="font-semibold text-gray-600">{data.completedTasks.length}</span>개</>
+            <> · 완료 <span className="font-semibold text-gray-600 dark:text-gray-400">{data.completedTasks.length}</span>개</>
           )}
         </p>
       </div>

@@ -2,7 +2,7 @@
 
 import { completeTask, discardTask } from "./actions";
 import { useTransition } from "react";
-import type { Task, Quadrant, TaskOrigin } from "@/generated/prisma/client";
+import type { Task, Quadrant, TaskOrigin } from "@prisma/client";
 
 const QUADRANT_COLORS: Record<Quadrant, string> = {
   Q1: "border-l-4 border-red-500 bg-red-50",

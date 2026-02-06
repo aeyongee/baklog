@@ -1,17 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import type { Quadrant, TaskOrigin } from "@/generated/prisma/client";
+import type { Quadrant, TaskOrigin } from "@prisma/client";
 import TaskCard, { type TaskWithOrigin } from "@/components/TaskCard";
 import { completeTask, discardTask } from "./actions";
 
 type ViewMode = "list" | "matrix";
 
 const QUADRANT_SECTIONS: { key: Quadrant; title: string; desc: string; accent: string; bg: string }[] = [
-  { key: "Q1", title: "긴급 + 중요", desc: "지금 바로 하기", accent: "text-red-600", bg: "bg-red-50 border-red-100" },
-  { key: "Q2", title: "중요", desc: "계획 세우기", accent: "text-[#FF2F92]", bg: "bg-pink-50 border-pink-100" },
-  { key: "Q3", title: "긴급", desc: "위임하거나 빠르게", accent: "text-amber-600", bg: "bg-amber-50 border-amber-100" },
-  { key: "Q4", title: "나중에", desc: "줄이거나 제거", accent: "text-gray-500", bg: "bg-gray-50 border-gray-100" },
+  { key: "Q1", title: "🔥 지금 당장", desc: "오늘 꼭 해야 할 일", accent: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/20 border-red-100 dark:border-red-900/30" },
+  { key: "Q2", title: "📅 계획적으로", desc: "중요하지만 여유있게", accent: "text-[#FF2F92] dark:text-pink-400", bg: "bg-pink-50 dark:bg-pink-950/20 border-pink-100 dark:border-pink-900/30" },
+  { key: "Q3", title: "⏰ 빠르게 처리", desc: "급하긴 한데 크게 중요하진 않음", accent: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/20 border-amber-100 dark:border-amber-900/30" },
+  { key: "Q4", title: "🧹 여유 있을 때", desc: "시간 나면 하기", accent: "text-gray-500 dark:text-gray-400", bg: "bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700" },
 ];
 
 export default function TodayTaskList({
@@ -161,8 +161,8 @@ function MatrixView({
         return (
           <div key={section.key} className={`rounded-2xl border p-4 ${section.bg}`}>
             <div className="mb-3">
-              <h3 className={`text-sm font-bold ${section.accent}`}>{section.key} {section.title}</h3>
-              <p className="text-[11px] text-gray-400">{section.desc}</p>
+              <h3 className={`text-sm font-bold ${section.accent}`}>{section.title}</h3>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500">{section.desc}</p>
             </div>
 
             {tasks.length === 0 && completed.length === 0 ? (

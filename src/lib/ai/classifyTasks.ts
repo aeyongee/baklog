@@ -1,6 +1,6 @@
 import { openai, OPENAI_MODEL } from "./openai";
 import type { ParsedTask } from "@/lib/parseTaskText";
-import type { Quadrant } from "@/generated/prisma/client";
+import type { Quadrant } from "@prisma/client";
 
 export interface ClassifyInput {
   id: string;

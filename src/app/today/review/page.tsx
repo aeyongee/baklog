@@ -9,8 +9,8 @@ export default async function TodayReview() {
   return (
     <main className="p-4 max-w-2xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">분류 결과 확인</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-2xl font-bold dark:text-gray-100">분류 결과 확인</h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-400">
           AI 분류 결과를 확인하고 필요시 수정하세요.
         </p>
       </div>

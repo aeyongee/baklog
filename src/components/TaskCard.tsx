@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import type { Task, Quadrant, TaskOrigin } from "@/generated/prisma/client";
+import type { Task, Quadrant, TaskOrigin } from "@prisma/client";
 
 export type TaskWithOrigin = Task & { origin?: TaskOrigin };
 

@@ -7,7 +7,9 @@ export default async function Home() {
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
       <div className="text-center">
         <h1 className="text-3xl font-bold">Baklog</h1>
-        <p className="mt-2 text-gray-500">Eisenhower Today Planner</p>
+        <p className="mt-2 text-gray-500 dark:text-gray-400">
+          일잘러로 거듭나기 위한 작업 관리 서비스
+        </p>
       </div>
 
       {session?.user ? (

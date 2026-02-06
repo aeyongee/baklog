@@ -2,7 +2,7 @@
 
 import { updateTaskClassification } from "./actions";
 import { useState, useTransition } from "react";
-import type { Quadrant } from "@/generated/prisma/client";
+import type { Quadrant } from "@prisma/client";
 
 type Task = {
   id: string;
