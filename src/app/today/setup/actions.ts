@@ -66,6 +66,27 @@ export async function getTodayTasks() {
   });
 }
 
+export async function deleteDraftTask(taskId: string) {
+  const session = await auth();
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const userId = await ensureUser({
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  });
+
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, userId, status: { in: ["draft", "classified"] } },
+  });
+
+  if (!task) throw new Error("Task not found");
+
+  await prisma.task.delete({ where: { id: taskId } });
+
+  revalidatePath("/today/setup");
+}
+
 export async function classifyDraftTasks(): Promise<{ error?: string }> {
   const session = await auth();
   if (!session?.user?.email) return { error: "로그인이 필요합니다." };

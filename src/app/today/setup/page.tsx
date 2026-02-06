@@ -1,5 +1,6 @@
 import { getTodayTasks } from "./actions";
 import SetupForm from "./setup-form";
+import DeleteTaskButton from "./delete-task-button";
 import EmptyState from "@/components/EmptyState";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -48,10 +49,8 @@ export default async function TodaySetup() {
               <span className="text-xs text-gray-400 dark:text-gray-500">
                 {i + 1}
               </span>
-              <span className="text-sm">{task.rawText}</span>
-              <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">
-                {task.status}
-              </span>
+              <span className="flex-1 text-sm">{task.rawText}</span>
+              <DeleteTaskButton taskId={task.id} />
             </li>
           ))}
         </ul>
