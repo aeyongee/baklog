@@ -4,6 +4,9 @@ import AlertSection from "./alert-section";
 import ReviewSection from "./review-section";
 import EmptyState from "@/components/EmptyState";
 
+// 5분마다 재검증 (캐싱)
+export const revalidate = 300;
+
 export default async function TodayDashboard() {
   const data = await getTodayTasks();
 

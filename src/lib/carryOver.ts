@@ -51,14 +51,16 @@ export async function ensureTodayPlanWithCarryOver(userId: string) {
   }
 
   // 4. 오늘 DailyPlanTask에 일괄 연결 (unique 제약 기반 중복 방지)
-  await prisma.dailyPlanTask.createMany({
-    data: incompleteTasks.map((task) => ({
-      dailyPlanId: todayPlan.id,
-      taskId: task.id,
-      origin: "carry_over" as const,
-    })),
-    skipDuplicates: true,
-  });
+  if (incompleteTasks.length > 0) {
+    await prisma.dailyPlanTask.createMany({
+      data: incompleteTasks.map((task) => ({
+        dailyPlanId: todayPlan.id,
+        taskId: task.id,
+        origin: "carry_over" as const,
+      })),
+      skipDuplicates: true,
+    });
+  }
 
   return todayPlan;
 }

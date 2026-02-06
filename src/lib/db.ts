@@ -10,12 +10,12 @@ const globalForPrisma = globalThis as unknown as {
 function createPrismaClient() {
   const connectionString = process.env.DATABASE_URL;
   
-  // Connection pooling 설정 (성능 최적화)
+  // Connection pooling 설정 (Neon 최적화)
   const pool = globalForPrisma.pgPool || new Pool({
     connectionString,
-    max: 10,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
+    max: 1, // Vercel Serverless에서는 1개면 충분
+    idleTimeoutMillis: 0, // 즉시 해제하지 않음
+    connectionTimeoutMillis: 5000, // 5초로 단축
   });
   
   if (!globalForPrisma.pgPool) {

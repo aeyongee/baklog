@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getCachedUserId, setCachedUserId } from "@/lib/userCache";
 
 interface EnsureUserParams {
   email: string;
@@ -9,8 +10,15 @@ interface EnsureUserParams {
 /**
  * Ensures a User (and UserPreference) row exists for the given email.
  * Returns the user's id.
+ * 캐시 사용으로 중복 DB 호출 방지
  */
 export async function ensureUser({ email, name, image }: EnsureUserParams): Promise<string> {
+  // 캐시 확인 (5분 이내 조회한 경우)
+  const cachedUserId = getCachedUserId(email);
+  if (cachedUserId) {
+    return cachedUserId;
+  }
+
   const user = await prisma.user.upsert({
     where: { email },
     update: {
@@ -32,6 +40,9 @@ export async function ensureUser({ email, name, image }: EnsureUserParams): Prom
       keywordWeights: {},
     },
   });
+
+  // 캐시 저장
+  setCachedUserId(email, user.id);
 
   return user.id;
 }

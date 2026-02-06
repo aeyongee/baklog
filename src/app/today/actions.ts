@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { ensureUser } from "@/lib/user";
 import { ensureTodayPlanWithCarryOver } from "@/lib/carryOver";
 import { applyRules } from "@/lib/rules/applyRules";
+import { shouldRunRules, markRulesExecuted } from "@/lib/rules/ruleCache";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -24,11 +25,14 @@ export async function getTodayTasks() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // 1. carryOver와 룰 엔진 병렬 실행 (독립적이므로)
-  await Promise.all([
-    ensureTodayPlanWithCarryOver(userId),
-    applyRules(userId, today),
-  ]);
+  // 1. carryOver는 항상 실행
+  await ensureTodayPlanWithCarryOver(userId);
+  
+  // 2. 룰 엔진은 1시간에 1번만 실행 (성능 최적화)
+  if (shouldRunRules(userId, today)) {
+    await applyRules(userId, today);
+    markRulesExecuted(userId, today);
+  }
 
   // 3. 오늘 DailyPlan 조회
   const dailyPlan = await prisma.dailyPlan.findUnique({
@@ -48,7 +52,6 @@ export async function getTodayTasks() {
   });
 
   if (!dailyPlan) {
-    console.log(`[Today] userId: ${userId}, no DailyPlan found`);
     return null;
   }
 
@@ -69,10 +72,6 @@ export async function getTodayTasks() {
   // 재조정 필요 섹션용: needsReviewAt이 있는 Q3 Task
   const reviewTasks = activeTasks.filter(
     (task) => task.finalQuadrant === "Q3" && task.needsReviewAt
-  );
-
-  console.log(
-    `[Today] userId: ${userId}, DailyPlan id: ${dailyPlan.id}, active: ${activeTasks.length}, completed: ${completedTasks.length}, alert: ${alertTasks.length}, review: ${reviewTasks.length}`
   );
 
   return {

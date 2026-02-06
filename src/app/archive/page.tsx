@@ -2,6 +2,9 @@ import { getArchivedTasks } from "./actions";
 import ArchiveItem from "./archive-item";
 import EmptyState from "@/components/EmptyState";
 
+// 10분마다 재검증 (자주 변하지 않음)
+export const revalidate = 600;
+
 export default async function ArchivePage() {
   const tasks = await getArchivedTasks();
 

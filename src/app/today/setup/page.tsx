@@ -3,6 +3,9 @@ import ClassifyButton from "./classify-button";
 import TaskInput from "./task-input";
 import EmptyState from "@/components/EmptyState";
 
+// 동적 페이지 (캐싱 없음 - 즉시 반영 필요)
+export const dynamic = "force-dynamic";
+
 export default async function TodaySetup() {
   const tasks = await getTodayTasks();
   const hasDrafts = tasks.some((t) => t.status === "draft");

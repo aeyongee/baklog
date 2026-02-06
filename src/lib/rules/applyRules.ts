@@ -91,10 +91,6 @@ export async function applyRules(userId: string, today: Date): Promise<RuleResul
     }
   }
 
-  console.log(
-    `[rules] user=${userId} alert=${result.alertCount} backlog=${result.backlogCount} archived=${result.archivedCount} review=${result.reviewCount}`
-  );
-
   return result;
 }
 

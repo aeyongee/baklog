@@ -3,6 +3,9 @@ import BacklogItem from "./backlog-item";
 import Link from "next/link";
 import EmptyState from "@/components/EmptyState";
 
+// 1분마다 재검증 (빠른 업데이트)
+export const revalidate = 60;
+
 export default async function BacklogPage() {
   const tasks = await getBacklogTasks();
 
