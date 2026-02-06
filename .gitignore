@@ -45,6 +45,5 @@ yarn-error.log*
 next-env.d.ts
 
 # 임시 무시 파일
-README.md
 구현명세서_MVP.md
 CLAUDE.md
