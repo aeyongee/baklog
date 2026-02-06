@@ -4,7 +4,7 @@ import { useRef, useTransition } from "react";
 import { addTask } from "./actions";
 import { useRouter } from "next/navigation";
 
-export default function TaskInput() {
+export default function TaskInput({ disabled = false }: { disabled?: boolean }) {
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
@@ -36,12 +36,12 @@ export default function TaskInput() {
         name="rawText"
         placeholder="작업을 입력하세요"
         autoComplete="off"
-        disabled={isPending}
+        disabled={isPending || disabled}
         className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:border-black dark:focus:border-[#FF2F92] focus:outline-none disabled:opacity-50"
       />
       <button
         type="submit"
-        disabled={isPending}
+        disabled={isPending || disabled}
         className="shrink-0 rounded-lg bg-black dark:bg-[#FF2F92] px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 dark:hover:bg-[#e6287f] disabled:opacity-50"
       >
         {isPending ? "추가 중..." : "추가"}

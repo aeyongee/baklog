@@ -1,6 +1,5 @@
 import { getTodayTasks } from "./actions";
-import ClassifyButton from "./classify-button";
-import TaskInput from "./task-input";
+import SetupForm from "./setup-form";
 import EmptyState from "@/components/EmptyState";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -37,9 +36,7 @@ export default async function TodaySetup() {
         할 일을 입력하면 우선순위 분류는 AI가 해요 😁
       </p>
 
-      <div className="mt-4">
-        <TaskInput />
-      </div>
+      <SetupForm hasDrafts={hasDrafts} />
 
       {tasks.length > 0 ? (
         <ul className="mt-6 space-y-2">
@@ -66,10 +63,6 @@ export default async function TodaySetup() {
           />
         </div>
       )}
-
-      <div className="mt-6">
-        <ClassifyButton disabled={!hasDrafts} />
-      </div>
     </main>
   );
 }
