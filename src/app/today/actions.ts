@@ -257,6 +257,43 @@ export async function moveQ3ToQ2(taskId: string) {
 }
 
 /**
+ * Task를 지정된 사분면으로 이동 (드래그 앤 드롭용)
+ */
+export async function moveTaskToQuadrant(
+  taskId: string,
+  quadrant: "Q1" | "Q2" | "Q3" | "Q4",
+) {
+  const session = await auth();
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const userId = await ensureUser({
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  });
+
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, userId, status: "active" },
+  });
+
+  if (!task) throw new Error("Task not found");
+
+  const finalImportant = quadrant === "Q1" || quadrant === "Q2";
+  const finalUrgent = quadrant === "Q1" || quadrant === "Q3";
+
+  await prisma.task.update({
+    where: { id: taskId },
+    data: {
+      finalImportant,
+      finalUrgent,
+      finalQuadrant: quadrant,
+    },
+  });
+
+  revalidatePath("/today");
+}
+
+/**
  * Q3 Task 폐기 (중요하지 않음)
  */
 export async function archiveQ3Task(taskId: string) {

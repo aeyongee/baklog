@@ -2,11 +2,31 @@ import { getTodayTasks } from "./actions";
 import ClassifyButton from "./classify-button";
 import TaskInput from "./task-input";
 import EmptyState from "@/components/EmptyState";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { ensureUser } from "@/lib/user";
+import { redirect } from "next/navigation";
 
 // 동적 페이지 (캐싱 없음 - 즉시 반영 필요)
 export const dynamic = "force-dynamic";
 
 export default async function TodaySetup() {
+  const session = await auth();
+  if (session?.user?.email) {
+    const userId = await ensureUser({
+      email: session.user.email,
+      name: session.user.name,
+      image: session.user.image,
+    });
+    const pref = await prisma.userPreference.findUnique({
+      where: { userId },
+      select: { onboardingCompleted: true },
+    });
+    if (!pref?.onboardingCompleted) {
+      redirect("/onboarding");
+    }
+  }
+
   const tasks = await getTodayTasks();
   const hasDrafts = tasks.some((t) => t.status === "draft");
 

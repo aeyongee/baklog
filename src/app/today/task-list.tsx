@@ -1,9 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import type { Quadrant, TaskOrigin } from "@prisma/client";
+import { useState, useCallback } from "react";
+import type { Quadrant } from "@prisma/client";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+  useDraggable,
+  type DragStartEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
 import TaskCard, { type TaskWithOrigin } from "@/components/TaskCard";
-import { completeTask, discardTask } from "./actions";
+import { completeTask, discardTask, moveTaskToQuadrant } from "./actions";
 
 type ViewMode = "list" | "matrix";
 
@@ -137,7 +149,7 @@ function ListView({
   );
 }
 
-/* ─── 사분면 뷰 ──────────────────────── */
+/* ─── 사분면 뷰 (DnD) ──────────────────────── */
 
 function MatrixView({
   activeTasks,
@@ -150,42 +162,135 @@ function MatrixView({
   onComplete: (id: string) => void;
   onDiscard: (id: string) => void;
 }) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 5 } });
+  const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } });
+  const sensors = useSensors(pointerSensor, touchSensor);
+
   const grouped = (q: Quadrant) => activeTasks.filter((t) => (t.finalQuadrant ?? t.aiQuadrant ?? "Q4") === q);
   const groupedCompleted = (q: Quadrant) => completedTasks.filter((t) => (t.finalQuadrant ?? t.aiQuadrant ?? "Q4") === q);
 
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      {QUADRANT_SECTIONS.map((section) => {
-        const tasks = grouped(section.key);
-        const completed = groupedCompleted(section.key);
-        return (
-          <div key={section.key} className={`rounded-2xl border p-4 ${section.bg}`}>
-            <div className="mb-3">
-              <h3 className={`text-sm font-bold ${section.accent}`}>{section.title}</h3>
-              <p className="text-[11px] text-gray-400 dark:text-gray-500">{section.desc}</p>
-            </div>
+  const activeTask = activeId ? activeTasks.find((t) => t.id === activeId) : null;
 
-            {tasks.length === 0 && completed.length === 0 ? (
-              <p className="text-xs text-gray-400 py-4 text-center">비어 있음</p>
-            ) : (
-              <div className="space-y-2">
-                {tasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onComplete={onComplete}
-                    onDiscard={onDiscard}
-                    compact
-                  />
-                ))}
-                {completed.map((task) => (
-                  <TaskCard key={task.id} task={task} isCompleted compact />
-                ))}
-              </div>
-            )}
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  }, []);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    setActiveId(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const taskId = active.id as string;
+    const targetQuadrant = over.id as Quadrant;
+    const task = activeTasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    const currentQuadrant = task.finalQuadrant ?? task.aiQuadrant ?? "Q4";
+    if (currentQuadrant === targetQuadrant) return;
+
+    moveTaskToQuadrant(taskId, targetQuadrant);
+  }, [activeTasks]);
+
+  const handleDragCancel = useCallback(() => {
+    setActiveId(null);
+  }, []);
+
+  return (
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {QUADRANT_SECTIONS.map((section) => {
+          const tasks = grouped(section.key);
+          const completed = groupedCompleted(section.key);
+          return (
+            <DroppableQuadrant key={section.key} section={section}>
+              {tasks.length === 0 && completed.length === 0 ? (
+                <p className="text-xs text-gray-400 py-4 text-center">비어 있음</p>
+              ) : (
+                <div className="space-y-2">
+                  {tasks.map((task) => (
+                    <DraggableTaskCard key={task.id} taskId={task.id} isDragging={activeId === task.id}>
+                      <TaskCard
+                        task={task}
+                        onComplete={onComplete}
+                        onDiscard={onDiscard}
+                        compact
+                      />
+                    </DraggableTaskCard>
+                  ))}
+                  {completed.map((task) => (
+                    <TaskCard key={task.id} task={task} isCompleted compact />
+                  ))}
+                </div>
+              )}
+            </DroppableQuadrant>
+          );
+        })}
+      </div>
+
+      <DragOverlay dropAnimation={null}>
+        {activeTask ? (
+          <div className="shadow-lg rotate-2 opacity-90">
+            <TaskCard task={activeTask} compact />
           </div>
-        );
-      })}
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}
+
+/* ─── DnD 컴포넌트 ──────────────────────── */
+
+function DroppableQuadrant({
+  section,
+  children,
+}: {
+  section: (typeof QUADRANT_SECTIONS)[number];
+  children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: section.key });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`rounded-2xl border p-4 transition-all ${section.bg} ${
+        isOver ? "ring-2 ring-blue-400" : ""
+      }`}
+    >
+      <div className="mb-3">
+        <h3 className={`text-sm font-bold ${section.accent}`}>{section.title}</h3>
+        <p className="text-[11px] text-gray-400 dark:text-gray-500">{section.desc}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function DraggableTaskCard({
+  taskId,
+  isDragging,
+  children,
+}: {
+  taskId: string;
+  isDragging: boolean;
+  children: React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef } = useDraggable({ id: taskId });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      className={`transition-opacity ${isDragging ? "opacity-30" : ""}`}
+    >
+      {children}
     </div>
   );
 }

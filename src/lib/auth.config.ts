@@ -10,7 +10,8 @@ export const authConfig: NextAuthConfig = {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const isProtectedRoute = nextUrl.pathname.startsWith("/today") ||
-        nextUrl.pathname.startsWith("/backlog");
+        nextUrl.pathname.startsWith("/backlog") ||
+        nextUrl.pathname.startsWith("/onboarding");
 
       if (isProtectedRoute && !isLoggedIn) {
         return Response.redirect(new URL("/", nextUrl));

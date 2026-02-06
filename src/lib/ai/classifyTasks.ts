@@ -17,7 +17,7 @@ export interface ClassifyResult {
   reason: string;
 }
 
-const SYSTEM_PROMPT = `당신은 아이젠하워 매트릭스 기반 할 일 분류 전문가입니다.
+export const SYSTEM_PROMPT = `당신은 아이젠하워 매트릭스 기반 할 일 분류 전문가입니다.
 
 사용자가 입력한 할 일 목록을 분석하여 각 항목의 중요도(importance)와 긴급도(urgency)를 판단하세요.
 
@@ -53,6 +53,7 @@ const SYSTEM_PROMPT = `당신은 아이젠하워 매트릭스 기반 할 일 분
 
 export async function classifyTasks(
   tasks: ClassifyInput[],
+  customPrompt?: string | null,
 ): Promise<ClassifyResult[]> {
   if (tasks.length === 0) return [];
 
@@ -65,7 +66,7 @@ export async function classifyTasks(
     temperature: 0,
     response_format: { type: "json_object" },
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: customPrompt || SYSTEM_PROMPT },
       { role: "user", content: userContent },
     ],
   });

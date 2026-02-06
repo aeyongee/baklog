@@ -92,6 +92,12 @@ export async function classifyDraftTasks(): Promise<{ error?: string }> {
 
   if (drafts.length === 0) return { error: "분류할 태스크가 없습니다." };
 
+  // 사용자 맞춤 프롬프트 조회
+  const pref = await prisma.userPreference.findUnique({
+    where: { userId },
+    select: { customPrompt: true },
+  });
+
   const input = drafts.map((t) => ({
     id: t.id,
     rawText: t.rawText,
@@ -100,7 +106,7 @@ export async function classifyDraftTasks(): Promise<{ error?: string }> {
 
   let results;
   try {
-    results = await classifyTasks(input);
+    results = await classifyTasks(input, pref?.customPrompt);
   } catch (e) {
     return { error: `AI 분류 실패: ${e instanceof Error ? e.message : "알 수 없는 오류"}` };
   }
