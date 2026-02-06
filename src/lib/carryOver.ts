@@ -38,7 +38,6 @@ export async function ensureTodayPlanWithCarryOver(userId: string) {
   });
 
   if (!yesterdayPlan) {
-    console.log(`[CarryOver] userId: ${userId}, no yesterday plan found`);
     return todayPlan;
   }
 
@@ -47,16 +46,12 @@ export async function ensureTodayPlanWithCarryOver(userId: string) {
     .map((dpt) => dpt.task)
     .filter((task) => task.status === "active");
 
-  console.log(
-    `[CarryOver] userId: ${userId}, yesterday incomplete tasks: ${incompleteTasks.length}`
-  );
-
   if (incompleteTasks.length === 0) {
     return todayPlan;
   }
 
   // 4. 오늘 DailyPlanTask에 일괄 연결 (unique 제약 기반 중복 방지)
-  const result = await prisma.dailyPlanTask.createMany({
+  await prisma.dailyPlanTask.createMany({
     data: incompleteTasks.map((task) => ({
       dailyPlanId: todayPlan.id,
       taskId: task.id,
@@ -64,8 +59,6 @@ export async function ensureTodayPlanWithCarryOver(userId: string) {
     })),
     skipDuplicates: true,
   });
-
-  console.log(`[CarryOver] userId: ${userId}, carried over: ${result.count} tasks`);
 
   return todayPlan;
 }

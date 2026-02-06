@@ -34,7 +34,7 @@ export async function addTask(formData: FormData) {
     },
   });
 
-  revalidatePath("/today/setup");
+  // revalidatePath 제거 - router.refresh()가 더 빠름
 }
 
 export async function getTodayTasks() {

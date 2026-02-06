@@ -21,14 +21,14 @@ export async function getTodayTasks() {
     image: session.user.image,
   });
 
-  // 1. 어제 미완료 Task를 오늘 계획에 자동 포함 (carry-over)
-  await ensureTodayPlanWithCarryOver(userId);
-
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // 2. 룰 엔진 실행 (Q1~Q4 자동 규칙 적용)
-  await applyRules(userId, today);
+  // 1. carryOver와 룰 엔진 병렬 실행 (독립적이므로)
+  await Promise.all([
+    ensureTodayPlanWithCarryOver(userId),
+    applyRules(userId, today),
+  ]);
 
   // 3. 오늘 DailyPlan 조회
   const dailyPlan = await prisma.dailyPlan.findUnique({
