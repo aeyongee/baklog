@@ -31,7 +31,7 @@ export default async function BacklogLayout({
           </form>
         </div>
         <nav className="border-t dark:border-gray-700">
-          <div className="flex items-center gap-1 px-4 py-2">
+          <div className="flex items-center justify-center gap-1 px-4 py-2">
             <Link
               href="/today"
               className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition"
@@ -49,6 +49,12 @@ export default async function BacklogLayout({
               className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition"
             >
               Backlog
+            </Link>
+            <Link
+              href="/monthly"
+              className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+            >
+              Monthly
             </Link>
           </div>
         </nav>

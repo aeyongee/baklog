@@ -23,6 +23,22 @@ export async function addTask(formData: FormData) {
   const rawText = (formData.get("rawText") as string)?.trim();
   if (!rawText) return;
 
+  // 현재 draft/classified 작업 개수 확인 (20개 제한)
+  const todayStart = getKSTToday();
+  const tomorrowStart = getKSTTomorrow();
+
+  const existingCount = await prisma.task.count({
+    where: {
+      userId,
+      status: { in: ["draft", "classified"] },
+      createdAt: { gte: todayStart, lt: tomorrowStart },
+    },
+  });
+
+  if (existingCount >= 20) {
+    throw new Error("하루에 최대 20개까지만 작업을 추가할 수 있습니다.");
+  }
+
   const parsed = parseTaskText(rawText);
 
   await prisma.task.create({

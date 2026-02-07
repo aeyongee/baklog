@@ -26,9 +26,17 @@ export default function TaskInput({ disabled = false }: { disabled?: boolean }) 
     inputRef.current?.focus();
 
     startTransition(async () => {
-      await addTask(formData);
-      // 캐시만 무효화 (빠름)
-      router.refresh();
+      try {
+        await addTask(formData);
+        // 캐시만 무효화 (빠름)
+        router.refresh();
+      } catch (error) {
+        // 에러 발생 시 입력 필드 복원
+        if (error instanceof Error) {
+          alert(error.message);
+        }
+        router.refresh();
+      }
     });
   };
 

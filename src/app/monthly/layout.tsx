@@ -2,14 +2,13 @@ import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
-export default async function TodayLayout({
+export default async function MonthlyLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const session = await auth();
 
-  // 미들웨어에서 1차 보호하지만, 방어적으로 한 번 더 체크
   if (!session?.user) redirect("/");
 
   return (

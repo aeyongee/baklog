@@ -211,7 +211,9 @@ function MatrixView({
           return (
             <DroppableQuadrant key={section.key} section={section}>
               {tasks.length === 0 && completed.length === 0 ? (
-                <p className="text-xs text-gray-400 py-4 text-center">비어 있음</p>
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-xs text-gray-400">비어 있음</p>
+                </div>
               ) : (
                 <div className="space-y-2">
                   {tasks.map((task) => (
@@ -259,15 +261,17 @@ function DroppableQuadrant({
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-2xl border p-4 transition-all ${section.bg} ${
+      className={`rounded-2xl border transition-all flex flex-col ${section.bg} ${
         isOver ? "ring-2 ring-blue-400" : ""
-      }`}
+      } h-[500px]`}
     >
-      <div className="mb-3">
+      <div className="p-4 pb-2 flex-shrink-0">
         <h3 className={`text-sm font-bold ${section.accent}`}>{section.title}</h3>
         <p className="text-[11px] text-gray-400 dark:text-gray-500">{section.desc}</p>
       </div>
-      {children}
+      <div className="flex-1 overflow-y-auto px-4 pb-4">
+        {children}
+      </div>
     </div>
   );
 }
