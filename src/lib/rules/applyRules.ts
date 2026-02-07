@@ -102,8 +102,8 @@ export async function applyRules(userId: string, today: Date): Promise<RuleResul
 
 /**
  * Q1 (중요 + 긴급)
- * - 최근 7일 중 3번 이상 미완료 → alertAt 설정
- * - 7번 이상 → backlogAt 설정하여 Backlog로 이동
+ * - 최근 7일 중 2번 이상 미완료 → alertAt 설정
+ * - 4번 이상 → backlogAt 설정하여 Backlog로 이동
  */
 async function handleQ1(
   task: { id: string; alertAt: Date | null; backlogAt: Date | null },
@@ -114,16 +114,16 @@ async function handleQ1(
   // 이미 backlogAt 설정되어 있으면 스킵 (idempotent)
   if (task.backlogAt) return;
 
-  if (daysIncluded >= 7) {
-    // 7일 이상 미완료 → backlogAt 설정
+  if (daysIncluded >= 4) {
+    // 4일 이상 미완료 → backlogAt 설정
     await prisma.task.update({
       where: { id: task.id },
       data: { backlogAt: today, alertAt: today },
     });
     result.backlogCount++;
     result.alertCount++;
-  } else if (daysIncluded >= 3 && !task.alertAt) {
-    // 3일 이상 미완료 → alertAt 설정
+  } else if (daysIncluded >= 2 && !task.alertAt) {
+    // 2일 이상 미완료 → alertAt 설정
     await prisma.task.update({
       where: { id: task.id },
       data: { alertAt: today },
@@ -134,7 +134,7 @@ async function handleQ1(
 
 /**
  * Q2 (중요 + 긴급하지 않음)
- * - 최근 7일 중 3번 이상 미완료 → backlogAt 설정
+ * - 최근 7일 중 4번 이상 미완료 → backlogAt 설정
  * - Backlog는 "나중에 할 일"의 추적 목록
  */
 async function handleQ2(
@@ -146,7 +146,7 @@ async function handleQ2(
   // 이미 backlogAt 설정되어 있으면 스킵 (idempotent)
   if (task.backlogAt) return;
 
-  if (daysIncluded >= 3) {
+  if (daysIncluded >= 4) {
     await prisma.task.update({
       where: { id: task.id },
       data: { backlogAt: today },

@@ -51,12 +51,6 @@ export default async function TodayLayout({
             >
               Backlog
             </Link>
-            <Link
-              href="/archive"
-              className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-            >
-              아카이브
-            </Link>
           </div>
         </nav>
       </header>
