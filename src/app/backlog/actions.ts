@@ -3,6 +3,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ensureUser } from "@/lib/user";
+import { getKSTToday } from "@/lib/date";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -19,8 +20,7 @@ export async function getBacklogTasks() {
     image: session.user.image,
   });
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getKSTToday();
 
   // 오늘 DailyPlan 조회
   const todayPlan = await prisma.dailyPlan.findUnique({
@@ -82,8 +82,7 @@ export async function addTaskToToday(taskId: string) {
 
   if (!task) throw new Error("Task not found");
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getKSTToday();
 
   // 오늘 DailyPlan 생성 또는 조회
   const todayPlan = await prisma.dailyPlan.upsert({

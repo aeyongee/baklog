@@ -21,21 +21,17 @@ export async function applyRules(userId: string, today: Date): Promise<RuleResul
     reviewCount: 0,
   };
 
-  // 날짜 정규화 (시간 제거)
-  const todayDate = new Date(today);
-  todayDate.setHours(0, 0, 0, 0);
+  // today는 이미 KST 자정 기준 UTC Date
+  const todayDate = today;
 
   // 최근 7일 날짜 범위
-  const sevenDaysAgo = new Date(todayDate);
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const sevenDaysAgo = new Date(todayDate.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   // 어제 날짜
-  const yesterday = new Date(todayDate);
-  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterday = new Date(todayDate.getTime() - 24 * 60 * 60 * 1000);
 
   // 2일 전 날짜
-  const twoDaysAgo = new Date(todayDate);
-  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+  const twoDaysAgo = new Date(todayDate.getTime() - 2 * 24 * 60 * 60 * 1000);
 
   // 1. 활성 상태의 모든 Task 조회 (discarded, completed 제외)
   const activeTasks = await prisma.task.findMany({
@@ -90,6 +86,16 @@ export async function applyRules(userId: string, today: Date): Promise<RuleResul
         break;
     }
   }
+
+  // 아카이브 7일 경과 작업 영구 삭제
+  // (DailyPlanTask, Feedback은 FK cascade로 자동 삭제)
+  await prisma.task.deleteMany({
+    where: {
+      userId,
+      status: "discarded",
+      archivedAt: { lte: sevenDaysAgo },
+    },
+  });
 
   return result;
 }

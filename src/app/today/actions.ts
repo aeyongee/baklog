@@ -3,14 +3,13 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ensureUser } from "@/lib/user";
-import { ensureTodayPlanWithCarryOver } from "@/lib/carryOver";
+import { getKSTToday } from "@/lib/date";
 import { applyRules } from "@/lib/rules/applyRules";
 import { shouldRunRules, markRulesExecuted } from "@/lib/rules/ruleCache";
 import { revalidatePath } from "next/cache";
 
 /**
  * 오늘의 DailyPlan 및 연결된 Task 조회 (active + completed)
- * - 자동으로 어제 미완료 Task를 carry-over
  */
 export async function getTodayTasks() {
   const session = await auth();
@@ -22,19 +21,15 @@ export async function getTodayTasks() {
     image: session.user.image,
   });
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getKSTToday();
 
-  // 1. carryOver는 항상 실행
-  await ensureTodayPlanWithCarryOver(userId);
-  
-  // 2. 룰 엔진은 1시간에 1번만 실행 (성능 최적화)
+  // 룰 엔진은 1시간에 1번만 실행 (성능 최적화)
   if (shouldRunRules(userId, today)) {
     await applyRules(userId, today);
     markRulesExecuted(userId, today);
   }
 
-  // 3. 오늘 DailyPlan 조회
+  // 오늘 DailyPlan 조회
   const dailyPlan = await prisma.dailyPlan.findUnique({
     where: {
       userId_date: { userId, date: today },

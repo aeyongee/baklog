@@ -3,6 +3,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ensureUser } from "@/lib/user";
+import { getKSTToday } from "@/lib/date";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -103,8 +104,7 @@ export async function finalizeTodayPlan() {
     return { error: "확정할 태스크가 없습니다." };
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getKSTToday();
 
   // DailyPlan 생성 또는 조회 (idempotent)
   const dailyPlan = await prisma.dailyPlan.upsert({

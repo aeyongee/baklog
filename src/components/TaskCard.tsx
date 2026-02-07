@@ -115,11 +115,6 @@ export default function TaskCard({
                 재조정 필요
               </span>
             )}
-            {task.backlogAt && (
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-500 text-white">
-                자동 이동
-              </span>
-            )}
           </div>
 
           {/* AI 이유 */}

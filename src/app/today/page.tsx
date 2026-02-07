@@ -1,13 +1,21 @@
 import { getTodayTasks } from "./actions";
+import { getCarryOverPreview } from "./setup/actions";
 import TodayTaskList from "./task-list";
 import AlertSection from "./alert-section";
 import ReviewSection from "./review-section";
 import EmptyState from "@/components/EmptyState";
+import { redirect } from "next/navigation";
 
 // 5분마다 재검증 (캐싱)
 export const revalidate = 300;
 
 export default async function TodayDashboard() {
+  // 이월 대상 작업이 있으면 setup 페이지로 리다이렉트
+  const carryOverTasks = await getCarryOverPreview();
+  if (carryOverTasks.length > 0) {
+    redirect("/today/setup");
+  }
+
   const data = await getTodayTasks();
 
   if (!data || (data.activeTasks.length === 0 && data.completedTasks.length === 0)) {

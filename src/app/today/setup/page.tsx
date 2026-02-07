@@ -1,6 +1,7 @@
-import { getTodayTasks } from "./actions";
+import { getTodayTasks, getCarryOverPreview, executeCarryOver } from "./actions";
 import SetupForm from "./setup-form";
 import DeleteTaskButton from "./delete-task-button";
+import CarryOverPopup from "./carry-over-popup";
 import EmptyState from "@/components/EmptyState";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -26,6 +27,9 @@ export default async function TodaySetup() {
       redirect("/onboarding");
     }
   }
+
+  // 이월 대상 미리보기 (carry-over 실행 전에 조회)
+  const carryOverTasks = await getCarryOverPreview();
 
   const tasks = await getTodayTasks();
   const hasDrafts = tasks.some((t) => t.status === "draft");
@@ -61,6 +65,10 @@ export default async function TodaySetup() {
             description="위 입력란에 작업을 하나씩 추가하면 AI가 자동으로 분류해 드립니다"
           />
         </div>
+      )}
+
+      {carryOverTasks.length > 0 && (
+        <CarryOverPopup tasks={carryOverTasks} onConfirm={executeCarryOver} />
       )}
     </main>
   );

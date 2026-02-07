@@ -52,11 +52,6 @@ export default function BacklogItem({ task }: { task: Task }) {
                 {quadrant}
               </span>
             )}
-            {task.backlogAt && (
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-500 dark:bg-orange-600 text-white">
-                🕐 자동 이동
-              </span>
-            )}
           </div>
 
           {task.aiReason && (
