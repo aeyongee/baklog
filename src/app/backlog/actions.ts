@@ -42,7 +42,7 @@ export async function getBacklogTasks() {
   const backlogTasks = await prisma.task.findMany({
     where: {
       userId,
-      status: { notIn: ["completed", "discarded"] },
+      status: "active",
       id: { notIn: todayTaskIds },
     },
     orderBy: [

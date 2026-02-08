@@ -1,43 +1,31 @@
 "use client";
 
-import { useRef, useEffect, useTransition } from "react";
-import { addTask } from "./actions";
-import { useRouter } from "next/navigation";
+import { useRef, useEffect } from "react";
 
-export default function TaskInput({ disabled = false }: { disabled?: boolean }) {
+export default function TaskInput({
+  disabled = false,
+  onSubmit,
+}: {
+  disabled?: boolean;
+  onSubmit: (rawText: string, formData: FormData) => void;
+}) {
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [isPending, startTransition] = useTransition();
-  const router = useRouter();
 
-  // disabled 해제 시 자동 포커스 복원
   useEffect(() => {
-    if (!disabled && !isPending) {
+    if (!disabled) {
       inputRef.current?.focus();
     }
-  }, [disabled, isPending]);
+  }, [disabled]);
 
-  const handleSubmit = async (formData: FormData) => {
-    const rawText = formData.get("rawText") as string;
-    if (!rawText?.trim()) return;
+  const handleSubmit = (formData: FormData) => {
+    const rawText = (formData.get("rawText") as string)?.trim();
+    if (!rawText) return;
 
-    // 즉시 입력 필드 초기화 + 포커스 복원
     formRef.current?.reset();
     inputRef.current?.focus();
 
-    startTransition(async () => {
-      try {
-        await addTask(formData);
-        // 캐시만 무효화 (빠름)
-        router.refresh();
-      } catch (error) {
-        // 에러 발생 시 입력 필드 복원
-        if (error instanceof Error) {
-          alert(error.message);
-        }
-        router.refresh();
-      }
-    });
+    onSubmit(rawText, formData);
   };
 
   return (
@@ -53,15 +41,15 @@ export default function TaskInput({ disabled = false }: { disabled?: boolean }) 
         placeholder="작업을 입력하세요"
         autoFocus
         autoComplete="off"
-        disabled={isPending || disabled}
+        disabled={disabled}
         className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:border-black dark:focus:border-[#FF2F92] focus:outline-none disabled:opacity-50"
       />
       <button
         type="submit"
-        disabled={isPending || disabled}
+        disabled={disabled}
         className="shrink-0 rounded-lg bg-black dark:bg-[#FF2F92] px-4 py-2 text-sm font-medium text-white enabled:hover:bg-gray-800 dark:enabled:hover:bg-[#e6287f] disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isPending ? "추가 중..." : "추가"}
+        추가
       </button>
     </form>
   );

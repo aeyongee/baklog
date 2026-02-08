@@ -3,7 +3,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ensureUser } from "@/lib/user";
-import { getKSTToday } from "@/lib/date";
+import { getKSTToday, getKSTTomorrow } from "@/lib/date";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -22,10 +22,14 @@ export async function getClassifiedTasks() {
     image: session.user.image,
   });
 
+  const todayStart = getKSTToday();
+  const tomorrowStart = getKSTTomorrow();
+
   const tasks = await prisma.task.findMany({
     where: {
       userId,
       status: "classified",
+      createdAt: { gte: todayStart, lt: tomorrowStart },
     },
     orderBy: { createdAt: "desc" },
     take: 50,
@@ -93,8 +97,15 @@ export async function finalizeTodayPlan() {
     image: session.user.image,
   });
 
+  const todayStart = getKSTToday();
+  const tomorrowStart = getKSTTomorrow();
+
   const tasks = await prisma.task.findMany({
-    where: { userId, status: "classified" },
+    where: {
+      userId,
+      status: "classified",
+      createdAt: { gte: todayStart, lt: tomorrowStart },
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -104,16 +115,14 @@ export async function finalizeTodayPlan() {
     return { error: "확정할 태스크가 없습니다." };
   }
 
-  const today = getKSTToday();
-
   // DailyPlan 생성 또는 조회 (idempotent)
   const dailyPlan = await prisma.dailyPlan.upsert({
     where: {
-      userId_date: { userId, date: today },
+      userId_date: { userId, date: todayStart },
     },
     create: {
       userId,
-      date: today,
+      date: todayStart,
       finalizedAt: new Date(),
     },
     update: {
