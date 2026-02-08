@@ -1,8 +1,9 @@
-import { getTodayTasks } from "./actions";
+import { getTodayTasks, getBacklogNotifications } from "./actions";
 import { getCarryOverPreview } from "./setup/actions";
 import TodayTaskList from "./task-list";
 import AlertSection from "./alert-section";
 import ReviewSection from "./review-section";
+import BacklogNotification from "./backlog-notification";
 import EmptyState from "@/components/EmptyState";
 import { redirect } from "next/navigation";
 
@@ -16,7 +17,10 @@ export default async function TodayDashboard() {
     redirect("/today/setup");
   }
 
-  const data = await getTodayTasks();
+  const [data, backlogNotifications] = await Promise.all([
+    getTodayTasks(),
+    getBacklogNotifications(),
+  ]);
 
   if (!data || (data.activeTasks.length === 0 && data.completedTasks.length === 0)) {
     return (
@@ -27,6 +31,8 @@ export default async function TodayDashboard() {
             하루를 계획하고 중요한 일에 집중하세요
           </p>
         </div>
+
+        <BacklogNotification tasks={backlogNotifications} />
 
         <EmptyState
           title="오늘은 비교적 한가하네요"
@@ -52,6 +58,7 @@ export default async function TodayDashboard() {
 
       <AlertSection tasks={data.alertTasks} />
       <ReviewSection tasks={data.reviewTasks} />
+      <BacklogNotification tasks={backlogNotifications} />
 
       <TodayTaskList
         activeTasks={data.activeTasks}

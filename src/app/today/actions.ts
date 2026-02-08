@@ -56,7 +56,9 @@ export async function getTodayTasks() {
     origin: dpt.origin,
   }));
 
-  const activeTasks = allTasksWithOrigin.filter((task) => task.status === "active");
+  const activeTasks = allTasksWithOrigin.filter(
+    (task) => task.status === "active" && !task.backlogAt
+  );
   const completedTasks = allTasksWithOrigin.filter((task) => task.status === "completed");
 
   // Alert 섹션용: alertAt이 있는 Q1 Task (backlogAt이 없는 것만)
@@ -76,6 +78,42 @@ export async function getTodayTasks() {
     alertTasks,
     reviewTasks,
   };
+}
+
+/**
+ * 백로그 알림: backlogAt이 설정된 active 작업 조회
+ * - 오늘 이동된 작업 (daysInBacklog = 0)
+ * - 1일 이상 적체된 작업 (daysInBacklog >= 1)
+ */
+export async function getBacklogNotifications() {
+  const session = await auth();
+  if (!session?.user?.email) return [];
+
+  const userId = await ensureUser({
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  });
+
+  const today = getKSTToday();
+
+  const backlogTasks = await prisma.task.findMany({
+    where: {
+      userId,
+      status: "active",
+      backlogAt: { not: null },
+    },
+    orderBy: { backlogAt: "asc" },
+    take: 10,
+  });
+
+  return backlogTasks.map((task) => ({
+    ...task,
+    daysInBacklog: Math.floor(
+      (today.getTime() - (task.backlogAt?.getTime() ?? today.getTime())) /
+        (24 * 60 * 60 * 1000),
+    ),
+  }));
 }
 
 /**

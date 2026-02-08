@@ -37,13 +37,17 @@ export async function getBacklogTasks() {
   // 오늘 계획에 포함된 Task ID 목록
   const todayTaskIds = todayPlan?.tasks.map((t) => t.taskId) ?? [];
 
-  // Backlog 후보: 미완료 + 오늘 계획 제외
-  // backlogAt이 있는 Task를 우선 표시 (룰 엔진에 의해 이동된 Task)
+  // Backlog 후보:
+  // 1) 오늘 계획에 없는 미완료 Task
+  // 2) backlogAt이 설정된 Task (룰 엔진에 의해 이동, DailyPlan 연결 여부 무관)
   const backlogTasks = await prisma.task.findMany({
     where: {
       userId,
-      status: { notIn: ["completed", "discarded"] },
-      id: { notIn: todayTaskIds },
+      status: "active",
+      OR: [
+        { id: { notIn: todayTaskIds } },
+        { backlogAt: { not: null } },
+      ],
     },
     orderBy: [
       { backlogAt: { sort: "desc", nulls: "last" } }, // backlogAt 있는 것 우선
