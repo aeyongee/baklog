@@ -15,6 +15,7 @@ export interface ClassifyResult {
   quadrant: Quadrant;
   confidence: number;
   reason: string;
+  category?: string;
 }
 
 export const SYSTEM_PROMPT = `당신은 아이젠하워 매트릭스 기반 할 일 분류 전문가입니다.
@@ -51,9 +52,20 @@ export const SYSTEM_PROMPT = `당신은 아이젠하워 매트릭스 기반 할 
 
 { "items": [ { "id": "...", "importance": 0.0, "urgency": 0.0, "quadrant": "Q1", "confidence": 0.0, "reason": "..." } ] }`;
 
+const CATEGORY_PROMPT_SUFFIX = `
+
+## 카테고리 분류
+각 항목에 대해 업무(work) 또는 개인(personal) 카테고리를 판단하세요.
+- work: 회사 업무, 프로젝트, 회의, 보고, 이슈 트래커 관련
+- personal: 개인 생활, 건강, 취미, 가사, 자기개발
+
+응답 JSON에 "category" 필드를 추가하세요: "work" 또는 "personal"
+{ "items": [ { "id": "...", "importance": 0.0, "urgency": 0.0, "quadrant": "Q1", "confidence": 0.0, "reason": "...", "category": "work" } ] }`;
+
 export async function classifyTasks(
   tasks: ClassifyInput[],
   customPrompt?: string | null,
+  isMixed?: boolean,
 ): Promise<ClassifyResult[]> {
   if (tasks.length === 0) return [];
 
@@ -61,12 +73,17 @@ export async function classifyTasks(
     tasks.map((t) => ({ id: t.id, rawText: t.rawText, parsed: t.parsed })),
   );
 
+  let systemPrompt = customPrompt || SYSTEM_PROMPT;
+  if (isMixed) {
+    systemPrompt += CATEGORY_PROMPT_SUFFIX;
+  }
+
   const response = await openai.chat.completions.create({
     model: OPENAI_MODEL,
     temperature: 0,
     response_format: { type: "json_object" },
     messages: [
-      { role: "system", content: customPrompt || SYSTEM_PROMPT },
+      { role: "system", content: systemPrompt },
       { role: "user", content: userContent },
     ],
   });
@@ -105,6 +122,9 @@ export async function classifyTasks(
             : "Q4";
     }
 
+    const rawCategory = String(item.category ?? "");
+    const category = rawCategory === "work" || rawCategory === "personal" ? rawCategory : undefined;
+
     return {
       id,
       importance,
@@ -112,6 +132,7 @@ export async function classifyTasks(
       quadrant: quadrant as Quadrant,
       confidence: clamp(Number(item.confidence)),
       reason: String(item.reason ?? "").slice(0, 100),
+      category,
     };
   });
 }

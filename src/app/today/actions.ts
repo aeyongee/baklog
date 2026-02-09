@@ -154,6 +154,36 @@ export async function completeTask(taskId: string) {
 }
 
 /**
+ * Task 완료 취소 (active로 복원)
+ */
+export async function uncompleteTask(taskId: string) {
+  const session = await auth();
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const userId = await ensureUser({
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  });
+
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, userId, status: "completed" },
+  });
+
+  if (!task) throw new Error("Task not found");
+
+  await prisma.task.update({
+    where: { id: taskId },
+    data: {
+      status: "active",
+      completedAt: null,
+    },
+  });
+
+  revalidatePath("/today");
+}
+
+/**
  * Task 폐기 처리
  */
 export async function discardTask(taskId: string) {
@@ -182,6 +212,49 @@ export async function discardTask(taskId: string) {
 
   revalidatePath("/today");
   revalidatePath("/archive");
+}
+
+/**
+ * 기본 뷰 설정 조회
+ */
+export async function getDefaultView(): Promise<"list" | "matrix"> {
+  const session = await auth();
+  if (!session?.user?.email) return "list";
+
+  const userId = await ensureUser({
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  });
+
+  const pref = await prisma.userPreference.findUnique({
+    where: { userId },
+    select: { defaultView: true },
+  });
+
+  return (pref?.defaultView === "matrix" ? "matrix" : "list");
+}
+
+/**
+ * 기본 뷰 설정 업데이트
+ */
+export async function updateDefaultView(view: string) {
+  const session = await auth();
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const userId = await ensureUser({
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  });
+
+  await prisma.userPreference.upsert({
+    where: { userId },
+    create: { userId, defaultView: view },
+    update: { defaultView: view },
+  });
+
+  revalidatePath("/today");
 }
 
 /**

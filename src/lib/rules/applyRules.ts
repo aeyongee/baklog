@@ -87,6 +87,40 @@ export async function applyRules(userId: string, today: Date): Promise<RuleResul
     }
   }
 
+  // 백로그 alert: backlogAt로부터 일정 기간 경과시 alertAt 설정
+  // Q1: 2일 경과, Q2: 4일 경과
+  const backlogTasks = await prisma.task.findMany({
+    where: {
+      userId,
+      status: "active",
+      backlogAt: { not: null },
+      alertAt: null,
+    },
+  });
+
+  for (const bt of backlogTasks) {
+    const quadrant = bt.finalQuadrant ?? bt.aiQuadrant;
+    if (!quadrant || !bt.backlogAt) continue;
+
+    const daysSinceBacklog = Math.floor(
+      (todayDate.getTime() - bt.backlogAt.getTime()) / (24 * 60 * 60 * 1000)
+    );
+
+    if (quadrant === "Q1" && daysSinceBacklog >= 2) {
+      await prisma.task.update({
+        where: { id: bt.id },
+        data: { alertAt: todayDate },
+      });
+      result.alertCount++;
+    } else if (quadrant === "Q2" && daysSinceBacklog >= 4) {
+      await prisma.task.update({
+        where: { id: bt.id },
+        data: { alertAt: todayDate },
+      });
+      result.alertCount++;
+    }
+  }
+
   // 아카이브 7일 경과 작업 영구 삭제
   // (DailyPlanTask, Feedback은 FK cascade로 자동 삭제)
   await prisma.task.deleteMany({
@@ -102,8 +136,8 @@ export async function applyRules(userId: string, today: Date): Promise<RuleResul
 
 /**
  * Q1 (중요 + 긴급)
- * - 최근 7일 중 2번 이상 미완료 → alertAt 설정
- * - 4번 이상 → backlogAt 설정하여 Backlog로 이동
+ * - 3일 이상 DailyPlan 포함시 backlogAt 설정
+ * - alertAt은 백로그 alert 단계에서 별도 처리
  */
 async function handleQ1(
   task: { id: string; alertAt: Date | null; backlogAt: Date | null },
@@ -114,28 +148,19 @@ async function handleQ1(
   // 이미 backlogAt 설정되어 있으면 스킵 (idempotent)
   if (task.backlogAt) return;
 
-  if (daysIncluded >= 4) {
-    // 4일 이상 미완료 → backlogAt 설정
+  if (daysIncluded >= 3) {
+    // 3일 이상 미완료 → backlogAt 설정
     await prisma.task.update({
       where: { id: task.id },
-      data: { backlogAt: today, alertAt: today },
+      data: { backlogAt: today },
     });
     result.backlogCount++;
-    result.alertCount++;
-  } else if (daysIncluded >= 2 && !task.alertAt) {
-    // 2일 이상 미완료 → alertAt 설정
-    await prisma.task.update({
-      where: { id: task.id },
-      data: { alertAt: today },
-    });
-    result.alertCount++;
   }
 }
 
 /**
  * Q2 (중요 + 긴급하지 않음)
- * - 최근 7일 중 4번 이상 미완료 → backlogAt 설정
- * - Backlog는 "나중에 할 일"의 추적 목록
+ * - 3일 이상 DailyPlan 포함시 backlogAt 설정
  */
 async function handleQ2(
   task: { id: string; backlogAt: Date | null },
@@ -146,7 +171,7 @@ async function handleQ2(
   // 이미 backlogAt 설정되어 있으면 스킵 (idempotent)
   if (task.backlogAt) return;
 
-  if (daysIncluded >= 4) {
+  if (daysIncluded >= 3) {
     await prisma.task.update({
       where: { id: task.id },
       data: { backlogAt: today },

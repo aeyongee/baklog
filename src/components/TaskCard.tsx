@@ -17,23 +17,31 @@ const ORIGIN_LABELS: Partial<Record<TaskOrigin, { text: string; className: strin
   backlog: { text: "백로그", className: "bg-purple-100 text-purple-600" },
 };
 
+const CATEGORY_LABELS: Record<string, { text: string; className: string }> = {
+  work: { text: "업무", className: "bg-blue-100 text-blue-600" },
+  personal: { text: "개인", className: "bg-green-100 text-green-600" },
+};
+
 export default function TaskCard({
   task,
   isCompleted,
   onComplete,
   onDiscard,
+  onUncomplete,
   compact = false,
 }: {
   task: TaskWithOrigin;
   isCompleted?: boolean;
   onComplete?: (id: string) => void;
   onDiscard?: (id: string) => void;
+  onUncomplete?: (id: string) => void;
   compact?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const quadrant = task.finalQuadrant ?? task.aiQuadrant ?? "Q4";
   const meta = QUADRANT_META[quadrant];
   const originBadge = task.origin ? ORIGIN_LABELS[task.origin] : null;
+  const categoryBadge = task.category ? CATEGORY_LABELS[task.category] : null;
 
   const handleComplete = () => {
     if (!onComplete) return;
@@ -47,15 +55,25 @@ export default function TaskCard({
     }
   };
 
+  const handleUncomplete = () => {
+    if (!onUncomplete) return;
+    startTransition(() => { onUncomplete(task.id); });
+  };
+
   if (isCompleted) {
     return (
       <div className={`rounded-xl bg-white p-4 shadow-sm transition ${isPending ? "opacity-40" : "opacity-60"}`}>
         <div className="flex items-center gap-3">
-          <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-green-100 text-green-600 text-xs">
+          <button
+            type="button"
+            onClick={onUncomplete ? handleUncomplete : undefined}
+            disabled={isPending || !onUncomplete}
+            className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-green-100 text-green-600 text-xs hover:bg-green-200 transition-colors disabled:cursor-default"
+          >
             ✓
-          </div>
+          </button>
           <div className="flex-1 min-w-0">
-            <p className="text-gray-400 line-through truncate">{task.rawText}</p>
+            <p className="text-gray-400 line-through truncate font-medium leading-snug">{task.rawText}</p>
             <div className="mt-1 flex items-center gap-2">
               <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${meta.badgeClass}`}>{quadrant}</span>
               {task.completedAt && (
@@ -96,6 +114,13 @@ export default function TaskCard({
               <span className={`inline-block h-1.5 w-1.5 rounded-full ${meta.dotClass}`} />
               {quadrant} {meta.label}
             </span>
+
+            {/* category 뱃지 */}
+            {categoryBadge && (
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${categoryBadge.className}`}>
+                {categoryBadge.text}
+              </span>
+            )}
 
             {/* origin 뱃지 */}
             {originBadge && (

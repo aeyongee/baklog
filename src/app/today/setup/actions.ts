@@ -116,7 +116,7 @@ export async function classifyDraftTasks(): Promise<{ error?: string }> {
   const drafts = await prisma.task.findMany({
     where: {
       userId,
-      status: "draft",
+      status: { in: ["draft", "classified"] },
       createdAt: { gte: todayStart, lt: tomorrowStart },
     },
     select: { id: true, rawText: true, parsed: true },
@@ -124,11 +124,15 @@ export async function classifyDraftTasks(): Promise<{ error?: string }> {
 
   if (drafts.length === 0) return { error: "분류할 태스크가 없습니다." };
 
-  // 사용자 맞춤 프롬프트 조회
+  // 사용자 맞춤 프롬프트 및 설문 응답 조회
   const pref = await prisma.userPreference.findUnique({
     where: { userId },
-    select: { customPrompt: true },
+    select: { customPrompt: true, surveyAnswers: true },
   });
+
+  // mixed 사용자인지 판단
+  const surveyAnswers = pref?.surveyAnswers as { purpose?: string } | null;
+  const isMixed = surveyAnswers?.purpose === "mixed";
 
   const input = drafts.map((t) => ({
     id: t.id,
@@ -138,7 +142,7 @@ export async function classifyDraftTasks(): Promise<{ error?: string }> {
 
   let results;
   try {
-    results = await classifyTasks(input, pref?.customPrompt);
+    results = await classifyTasks(input, pref?.customPrompt, isMixed);
   } catch (e) {
     return { error: `AI 분류 실패: ${e instanceof Error ? e.message : "알 수 없는 오류"}` };
   }
@@ -153,11 +157,37 @@ export async function classifyDraftTasks(): Promise<{ error?: string }> {
           aiQuadrant: r.quadrant,
           aiConfidence: r.confidence,
           aiReason: r.reason,
+          category: r.category ?? null,
           status: "classified",
         },
       }),
     ),
   );
+
+  redirect("/today/review");
+}
+
+export async function manualClassifyDraftTasks() {
+  const session = await auth();
+  if (!session?.user?.email) return;
+
+  const userId = await ensureUser({
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  });
+
+  const todayStart = getKSTToday();
+  const tomorrowStart = getKSTTomorrow();
+
+  await prisma.task.updateMany({
+    where: {
+      userId,
+      status: "draft",
+      createdAt: { gte: todayStart, lt: tomorrowStart },
+    },
+    data: { status: "classified" },
+  });
 
   redirect("/today/review");
 }
@@ -208,7 +238,8 @@ export async function getCarryOverPreview() {
 
   return yesterdayPlan.tasks
     .map((dpt) => dpt.task)
-    .filter((task) => task.status === "active");
+    .filter((task) => task.status === "active")
+    .filter((task) => (task.finalQuadrant ?? task.aiQuadrant) !== "Q4");
 }
 
 /**

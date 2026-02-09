@@ -72,6 +72,14 @@ const RESPONSE_RULES = `## 응답 규칙
 
 { "items": [ { "id": "...", "importance": 0.0, "urgency": 0.0, "quadrant": "Q1", "confidence": 0.0, "reason": "..." } ] }`;
 
+const CATEGORY_RULES = `## 카테고리 분류
+각 항목에 대해 업무(work) 또는 개인(personal) 카테고리를 판단하세요.
+- work: 회사 업무, 프로젝트, 회의, 보고, 이슈 트래커 관련
+- personal: 개인 생활, 건강, 취미, 가사, 자기개발
+
+응답 JSON에 "category" 필드를 추가하세요: "work" 또는 "personal"
+{ "items": [ { "id": "...", "importance": 0.0, "urgency": 0.0, "quadrant": "Q1", "confidence": 0.0, "reason": "...", "category": "work" } ] }`;
+
 export function buildCustomPrompt(answers: SurveyAnswers): string {
   const sections: string[] = [BASE_PROMPT];
 
@@ -108,7 +116,11 @@ export function buildCustomPrompt(answers: SurveyAnswers): string {
   sections.push("\n" + WORK_STYLE_CONTEXT[answers.workStyle]);
 
   // 응답 규칙
-  sections.push("\n" + RESPONSE_RULES);
+  if (answers.purpose === "mixed") {
+    sections.push("\n" + CATEGORY_RULES);
+  } else {
+    sections.push("\n" + RESPONSE_RULES);
+  }
 
   return sections.join("\n");
 }

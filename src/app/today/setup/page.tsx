@@ -37,11 +37,9 @@ export default async function TodaySetup() {
   return (
     <main className="mx-auto max-w-lg p-4">
       <div>
-        <h1 className="text-xl font-bold dark:text-gray-100">
-          오늘의 할 일
-        </h1>
+        <h1 className="text-xl font-bold dark:text-gray-100">오늘의 할 일</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          할 일을 입력하면 우선순위 분류는 AI가 해요
+          할 일을 입력하면 우선순위 분류는 AI가 해요.
         </p>
       </div>
 

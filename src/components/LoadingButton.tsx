@@ -14,7 +14,7 @@ export default function LoadingButton({
     <button
       disabled={pending || props.disabled}
       {...props}
-      className={`w-full rounded-xl bg-[#FF2F92] px-4 py-3.5 text-sm font-semibold text-white hover:bg-[#e6287f] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 transition-all ${props.className ?? ""}`}
+      className={`w-full rounded-xl bg-[#FF2F92] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e6287f] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 transition-all ${props.className ?? ""}`}
     >
       {pending ? (
         <span className="flex items-center justify-center gap-2">

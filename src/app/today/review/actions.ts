@@ -84,6 +84,36 @@ export async function updateTaskClassification(
 }
 
 /**
+ * Review 단계에서 사용자가 카테고리(업무/개인) 수정
+ */
+export async function updateTaskCategory(
+  taskId: string,
+  category: string | null,
+) {
+  const session = await auth();
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const userId = await ensureUser({
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  });
+
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, userId },
+  });
+
+  if (!task) throw new Error("Task not found");
+
+  await prisma.task.update({
+    where: { id: taskId },
+    data: { category },
+  });
+
+  revalidatePath("/today/review");
+}
+
+/**
  * Review 확정 → DailyPlan 생성 및 Task 상태 변경
  * Idempotent: 중복 클릭해도 안전하게 처리
  */

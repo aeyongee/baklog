@@ -1,6 +1,6 @@
 "use client";
 
-import { updateTaskClassification } from "./actions";
+import { updateTaskClassification, updateTaskCategory } from "./actions";
 import { useState, useTransition } from "react";
 import type { Quadrant } from "@prisma/client";
 
@@ -15,6 +15,7 @@ type Task = {
   finalImportant: boolean | null;
   finalUrgent: boolean | null;
   finalQuadrant: Quadrant | null;
+  category: string | null;
 };
 
 const QUADRANT_LABELS: Record<Quadrant, string> = {
@@ -37,6 +38,16 @@ export default function TaskReviewItem({ task }: { task: Task }) {
   // AI 결과를 기본값으로 사용, 사용자가 수정한 경우 그 값 사용
   const currentImportant = task.finalImportant ?? (task.aiImportance ?? 0) > 0.5;
   const currentUrgent = task.finalUrgent ?? (task.aiUrgency ?? 0) > 0.5;
+
+  const isManual = !task.aiQuadrant;
+  const currentCategory = task.category;
+
+  const handleCategoryToggle = (cat: "work" | "personal") => {
+    const newCat = currentCategory === cat ? null : cat;
+    startTransition(async () => {
+      await updateTaskCategory(task.id, newCat);
+    });
+  };
 
   const handleToggle = (field: "important" | "urgent") => {
     const newImportant = field === "important" ? !currentImportant : currentImportant;
@@ -106,6 +117,35 @@ export default function TaskReviewItem({ task }: { task: Task }) {
           {currentUrgent ? "✓ 긴급함" : "긴급함"}
         </button>
       </div>
+
+      {isManual && (
+        <div className="mt-3 flex justify-end"><div className="inline-flex rounded-lg bg-white/60 p-0.5 border border-gray-200">
+          <button
+            type="button"
+            onClick={() => handleCategoryToggle("work")}
+            disabled={isPending}
+            className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+              currentCategory === "work"
+                ? "bg-blue-500 text-white shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            업무
+          </button>
+          <button
+            type="button"
+            onClick={() => handleCategoryToggle("personal")}
+            disabled={isPending}
+            className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+              currentCategory === "personal"
+                ? "bg-green-500 text-white shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            개인
+          </button>
+        </div></div>
+      )}
     </div>
   );
 }

@@ -58,6 +58,7 @@ model Task {
   finalUrgent    Boolean?
   finalQuadrant  Quadrant?
 
+  category    String?    // "work" | "personal"
   status      TaskStatus @default(draft)
   createdAt   DateTime   @default(now())
   completedAt DateTime?
@@ -112,6 +113,7 @@ model UserPreference {
   onboardingCompleted Boolean  @default(false)
   surveyAnswers       Json?
   customPrompt        String?  @db.Text
+  defaultView         String   @default("list")
   updatedAt           DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

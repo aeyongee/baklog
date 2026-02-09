@@ -4,6 +4,7 @@ import { useState, useOptimistic, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import TaskInput from "./task-input";
 import ClassifyButton from "./classify-button";
+import ManualClassifyButton from "./manual-classify-button";
 import DeleteTaskButton from "./delete-task-button";
 import EmptyState from "@/components/EmptyState";
 import { addTask } from "./actions";
@@ -28,7 +29,7 @@ export default function SetupForm({
     (state: TaskItem[], newTask: TaskItem) => [...state, newTask],
   );
 
-  const hasDrafts = optimisticTasks.some((t) => t.status === "draft");
+  const hasTasks = optimisticTasks.some((t) => t.status === "draft" || t.status === "classified");
   const limitReached = optimisticTasks.length >= 20;
 
   const handleTaskSubmit = (rawText: string, formData: FormData) => {
@@ -66,11 +67,12 @@ export default function SetupForm({
         </div>
       )}
 
-      <div className="mt-6">
+      <div className="mt-6 grid grid-cols-2 gap-3">
         <ClassifyButton
-          disabled={!hasDrafts}
+          disabled={!hasTasks}
           onPendingChange={setIsClassifying}
         />
+        <ManualClassifyButton disabled={!hasTasks || isClassifying} />
       </div>
 
       {optimisticTasks.length > 0 ? (

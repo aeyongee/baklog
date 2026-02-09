@@ -1,4 +1,4 @@
-import { getTodayTasks, getBacklogNotifications } from "./actions";
+import { getTodayTasks, getBacklogNotifications, getDefaultView } from "./actions";
 import { getCarryOverPreview } from "./setup/actions";
 import TodayTaskList from "./task-list";
 import AlertSection from "./alert-section";
@@ -17,9 +17,10 @@ export default async function TodayDashboard() {
     redirect("/today/setup");
   }
 
-  const [data, backlogNotifications] = await Promise.all([
+  const [data, backlogNotifications, defaultView] = await Promise.all([
     getTodayTasks(),
     getBacklogNotifications(),
+    getDefaultView(),
   ]);
 
   if (!data || (data.activeTasks.length === 0 && data.completedTasks.length === 0)) {
@@ -63,6 +64,7 @@ export default async function TodayDashboard() {
       <TodayTaskList
         activeTasks={data.activeTasks}
         completedTasks={data.completedTasks}
+        defaultView={defaultView}
       />
     </main>
   );

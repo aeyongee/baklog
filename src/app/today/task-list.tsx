@@ -15,7 +15,7 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import TaskCard, { type TaskWithOrigin } from "@/components/TaskCard";
-import { completeTask, discardTask, moveTaskToQuadrant } from "./actions";
+import { completeTask, discardTask, uncompleteTask, moveTaskToQuadrant } from "./actions";
 
 type ViewMode = "list" | "matrix";
 
@@ -29,15 +29,18 @@ const QUADRANT_SECTIONS: { key: Quadrant; title: string; desc: string; accent: s
 export default function TodayTaskList({
   activeTasks,
   completedTasks,
+  defaultView = "list",
 }: {
   activeTasks: TaskWithOrigin[];
   completedTasks: TaskWithOrigin[];
+  defaultView?: "list" | "matrix";
 }) {
-  const [view, setView] = useState<ViewMode>("list");
+  const [view, setView] = useState<ViewMode>(defaultView);
   const [showCompleted, setShowCompleted] = useState(false);
 
   const handleComplete = async (id: string) => { await completeTask(id); };
   const handleDiscard = async (id: string) => { await discardTask(id); };
+  const handleUncomplete = async (id: string) => { await uncompleteTask(id); };
 
   return (
     <div>
@@ -69,7 +72,7 @@ export default function TodayTaskList({
           <button
             type="button"
             onClick={() => setShowCompleted(!showCompleted)}
-            className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-600 transition-colors"
           >
             완료 {completedTasks.length}건 {showCompleted ? "숨기기" : "보기"}
           </button>
@@ -83,6 +86,7 @@ export default function TodayTaskList({
           completedTasks={showCompleted ? completedTasks : []}
           onComplete={handleComplete}
           onDiscard={handleDiscard}
+          onUncomplete={handleUncomplete}
         />
       )}
 
@@ -93,6 +97,7 @@ export default function TodayTaskList({
           completedTasks={showCompleted ? completedTasks : []}
           onComplete={handleComplete}
           onDiscard={handleDiscard}
+          onUncomplete={handleUncomplete}
         />
       )}
     </div>
@@ -106,11 +111,13 @@ function ListView({
   completedTasks,
   onComplete,
   onDiscard,
+  onUncomplete,
 }: {
   activeTasks: TaskWithOrigin[];
   completedTasks: TaskWithOrigin[];
   onComplete: (id: string) => void;
   onDiscard: (id: string) => void;
+  onUncomplete: (id: string) => void;
 }) {
   if (activeTasks.length === 0 && completedTasks.length === 0) {
     return (
@@ -140,7 +147,7 @@ function ListView({
           </p>
           <div className="space-y-2">
             {completedTasks.map((task) => (
-              <TaskCard key={task.id} task={task} isCompleted />
+              <TaskCard key={task.id} task={task} isCompleted onUncomplete={onUncomplete} />
             ))}
           </div>
         </div>
@@ -156,11 +163,13 @@ function MatrixView({
   completedTasks,
   onComplete,
   onDiscard,
+  onUncomplete,
 }: {
   activeTasks: TaskWithOrigin[];
   completedTasks: TaskWithOrigin[];
   onComplete: (id: string) => void;
   onDiscard: (id: string) => void;
+  onUncomplete: (id: string) => void;
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -227,7 +236,7 @@ function MatrixView({
                     </DraggableTaskCard>
                   ))}
                   {completed.map((task) => (
-                    <TaskCard key={task.id} task={task} isCompleted compact />
+                    <TaskCard key={task.id} task={task} isCompleted compact onUncomplete={onUncomplete} />
                   ))}
                 </div>
               )}
