@@ -148,3 +148,38 @@ export async function addTaskToTodayAndRedirect(taskId: string) {
   await addTaskToToday(taskId);
   redirect("/today");
 }
+
+/**
+ * Backlog Task 삭제 (discarded 상태로 변경)
+ */
+export async function deleteBacklogTask(taskId: string) {
+  const session = await auth();
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const userId = await ensureUser({
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  });
+
+  // 본인 소유 Task인지 확인
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, userId },
+  });
+
+  if (!task) throw new Error("Task not found");
+
+  // Task 상태를 discarded로 변경
+  await prisma.task.update({
+    where: { id: taskId },
+    data: {
+      status: "discarded",
+      archivedAt: new Date(),
+    },
+  });
+
+  console.log(`[Backlog] taskId: ${taskId} deleted (discarded)`);
+
+  revalidatePath("/backlog");
+  revalidatePath("/archive");
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { Quadrant } from "@prisma/client";
 import {
   DndContext,
@@ -172,6 +172,13 @@ function MatrixView({
   onUncomplete: (id: string) => void;
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // 클라이언트에서만 DnD 활성화 (hydration 문제 방지)
+  // This is intentional for hydration: mount state is needed to prevent SSR/client mismatch
+  useEffect(() => {
+    setMounted(true); // eslint-disable-line
+  }, []);
 
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 5 } });
   const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } });
@@ -205,6 +212,51 @@ function MatrixView({
   const handleDragCancel = useCallback(() => {
     setActiveId(null);
   }, []);
+
+  // 서버 렌더링 시에는 DnD 없이 정적 그리드만 표시 (hydration 문제 방지)
+  if (!mounted) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {QUADRANT_SECTIONS.map((section) => {
+          const tasks = grouped(section.key);
+          const completed = groupedCompleted(section.key);
+          return (
+            <div
+              key={section.key}
+              className={`rounded-2xl border transition-all flex flex-col ${section.bg} h-[500px]`}
+            >
+              <div className="p-4 pb-2 shrink-0">
+                <h3 className={`text-sm font-bold ${section.accent}`}>{section.title}</h3>
+                <p className="text-[11px] text-gray-400 dark:text-gray-500">{section.desc}</p>
+              </div>
+              <div className="flex-1 overflow-y-auto px-4 pb-4">
+                {tasks.length === 0 && completed.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-xs text-gray-400">비어 있음</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {tasks.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        onComplete={onComplete}
+                        onDiscard={onDiscard}
+                        compact
+                      />
+                    ))}
+                    {completed.map((task) => (
+                      <TaskCard key={task.id} task={task} isCompleted compact onUncomplete={onUncomplete} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <DndContext
@@ -274,7 +326,7 @@ function DroppableQuadrant({
         isOver ? "ring-2 ring-blue-400" : ""
       } h-[500px]`}
     >
-      <div className="p-4 pb-2 flex-shrink-0">
+              <div className="p-4 pb-2 shrink-0">
         <h3 className={`text-sm font-bold ${section.accent}`}>{section.title}</h3>
         <p className="text-[11px] text-gray-400 dark:text-gray-500">{section.desc}</p>
       </div>

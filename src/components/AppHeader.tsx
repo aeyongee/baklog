@@ -1,7 +1,9 @@
-import { auth, signOut } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import UserSettingsButton from "./UserSettingsButton";
+import GuideButton from "./GuideButton";
+import LogoutButton from "./LogoutButton";
 
 export default async function AppHeader() {
   const session = await auth();
@@ -13,24 +15,13 @@ export default async function AppHeader() {
       <div className="flex items-center justify-between px-4 py-3">
         <span className="text-sm font-bold text-[#FF2F92]">Baklog</span>
         <div className="flex items-center gap-3">
+          <GuideButton />
           <UserSettingsButton
             name={session.user.name ?? ""}
             email={session.user.email ?? ""}
             image={session.user.image ?? undefined}
           />
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/" });
-            }}
-          >
-            <button
-              type="submit"
-              className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              로그아웃
-            </button>
-          </form>
+          <LogoutButton />
         </div>
       </div>
       <nav className="border-t dark:border-gray-700">

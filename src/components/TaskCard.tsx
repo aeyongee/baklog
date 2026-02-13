@@ -1,7 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import type { Task, Quadrant, TaskOrigin } from "@prisma/client";
+import ConfirmDialog from "./ConfirmDialog";
 
 export type TaskWithOrigin = Task & { origin?: TaskOrigin };
 
@@ -38,6 +39,7 @@ export default function TaskCard({
   compact?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const quadrant = task.finalQuadrant ?? task.aiQuadrant ?? "Q4";
   const meta = QUADRANT_META[quadrant];
   const originBadge = task.origin ? ORIGIN_LABELS[task.origin] : null;
@@ -48,11 +50,14 @@ export default function TaskCard({
     startTransition(() => { onComplete(task.id); });
   };
 
-  const handleDiscard = () => {
+  const handleDiscardClick = () => {
     if (!onDiscard) return;
-    if (confirm("이 작업을 폐기할까요?")) {
-      startTransition(() => { onDiscard(task.id); });
-    }
+    setShowDiscardConfirm(true);
+  };
+
+  const handleDiscardConfirm = () => {
+    if (!onDiscard) return;
+    startTransition(() => { onDiscard(task.id); });
   };
 
   const handleUncomplete = () => {
@@ -152,7 +157,7 @@ export default function TaskCard({
         {onDiscard && (
           <button
             type="button"
-            onClick={handleDiscard}
+            onClick={handleDiscardClick}
             disabled={isPending}
             className="shrink-0 mt-0.5 text-gray-300 hover:text-red-400 transition-colors disabled:opacity-40"
             title="폐기"
@@ -161,6 +166,20 @@ export default function TaskCard({
           </button>
         )}
       </div>
+
+      {/* 폐기 확인 대화상자 */}
+      {onDiscard && (
+        <ConfirmDialog
+          open={showDiscardConfirm}
+          onOpenChange={setShowDiscardConfirm}
+          title="작업 폐기"
+          description="이 작업을 폐기하시겠습니까?"
+          confirmText="폐기"
+          cancelText="취소"
+          onConfirm={handleDiscardConfirm}
+          variant="danger"
+        />
+      )}
     </div>
   );
 }
