@@ -61,22 +61,10 @@ export async function getTodayTasks() {
   );
   const completedTasks = allTasksWithOrigin.filter((task) => task.status === "completed");
 
-  // Alert 섹션용: alertAt이 있는 Q1 Task (backlogAt이 없는 것만)
-  const alertTasks = activeTasks.filter(
-    (task) => task.finalQuadrant === "Q1" && task.alertAt && !task.backlogAt
-  );
-
-  // 재조정 필요 섹션용: needsReviewAt이 있는 Q3 Task
-  const reviewTasks = activeTasks.filter(
-    (task) => task.finalQuadrant === "Q3" && task.needsReviewAt
-  );
-
   return {
     dailyPlan,
     activeTasks,
     completedTasks,
-    alertTasks,
-    reviewTasks,
   };
 }
 

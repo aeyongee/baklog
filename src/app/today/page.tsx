@@ -1,8 +1,6 @@
 import { getTodayTasks, getBacklogNotifications, getDefaultView } from "./actions";
 import { getCarryOverPreview } from "./setup/actions";
 import TodayTaskList from "./task-list";
-import AlertSection from "./alert-section";
-import ReviewSection from "./review-section";
 import BacklogNotification from "./backlog-notification";
 import EmptyState from "@/components/EmptyState";
 import { redirect } from "next/navigation";
@@ -57,8 +55,6 @@ export default async function TodayDashboard() {
         </p>
       </div>
 
-      <AlertSection tasks={data.alertTasks} />
-      <ReviewSection tasks={data.reviewTasks} />
       <BacklogNotification tasks={backlogNotifications} />
 
       <TodayTaskList

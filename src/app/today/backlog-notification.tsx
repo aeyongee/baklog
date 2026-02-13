@@ -15,8 +15,9 @@ export default function BacklogNotification({
 }) {
   if (tasks.length === 0) return null;
 
-  const newTasks = tasks.filter((t) => t.daysInBacklog === 0);
-  const staleTasks = tasks.filter((t) => t.daysInBacklog > 0);
+  const alertTasks = tasks.filter((t) => t.alertAt !== null);
+  const newTasks = tasks.filter((t) => t.daysInBacklog === 0 && !t.alertAt);
+  const normalStaleTasks = tasks.filter((t) => t.daysInBacklog > 0 && !t.alertAt);
 
   return (
     <div className="mb-5 rounded-2xl bg-purple-50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/30 p-4">
@@ -35,10 +36,23 @@ export default function BacklogNotification({
         </Link>
       </div>
 
+      {alertTasks.length > 0 && (
+        <>
+          <p className="text-xs text-red-600 dark:text-red-400/80 mb-3 font-semibold">
+            중요한 작업이 백로그에 오래 머물고 있어요!
+          </p>
+          <div className="space-y-2 mb-3">
+            {alertTasks.map((task) => (
+              <BacklogNotificationItem key={task.id} task={task} isAlert />
+            ))}
+          </div>
+        </>
+      )}
+
       {newTasks.length > 0 && (
         <>
           <p className="text-xs text-purple-600 dark:text-purple-400/80 mb-3">
-            오늘 새로 백로그로 이동된 작업이에요. 계속 미루면 잊혀질 수 있어요.
+            오늘 새로 백로그로 이동된 작업이에요.
           </p>
           <div className="space-y-2 mb-3">
             {newTasks.map((task) => (
@@ -48,15 +62,15 @@ export default function BacklogNotification({
         </>
       )}
 
-      {staleTasks.length > 0 && (
+      {normalStaleTasks.length > 0 && (
         <>
           <p className="text-xs text-purple-600 dark:text-purple-400/80 mb-3">
-            {newTasks.length > 0
+            {(newTasks.length > 0 || alertTasks.length > 0)
               ? "이전에 이동된 작업도 쌓여있어요."
               : "백로그에 쌓인 채 처리되지 않은 작업이에요."}
           </p>
           <div className="space-y-2">
-            {staleTasks.map((task) => (
+            {normalStaleTasks.map((task) => (
               <BacklogNotificationItem key={task.id} task={task} />
             ))}
           </div>
@@ -69,21 +83,31 @@ export default function BacklogNotification({
 function BacklogNotificationItem({
   task,
   isNew = false,
+  isAlert = false,
 }: {
   task: BacklogTask;
   isNew?: boolean;
+  isAlert?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
 
   return (
     <div
-      className={`rounded-xl bg-white dark:bg-gray-800 p-3 shadow-sm transition-all ${isPending ? "opacity-40 scale-[0.98]" : ""}`}
+      className={`rounded-xl p-3 shadow-sm transition-all ${isPending ? "opacity-40 scale-[0.98]" : ""} ${
+        isAlert
+          ? "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30"
+          : "bg-white dark:bg-gray-800"
+      }`}
     >
       <div className="flex items-center gap-2 mb-2.5">
         <p className="flex-1 font-medium text-gray-900 dark:text-gray-100 text-sm">
           {task.rawText}
         </p>
-        {isNew ? (
+        {isAlert ? (
+          <span className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500 text-white">
+            {task.daysInBacklog}일째 방치
+          </span>
+        ) : isNew ? (
           <span className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-500 text-white">
             오늘 이동
           </span>

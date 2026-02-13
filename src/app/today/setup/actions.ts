@@ -238,8 +238,7 @@ export async function getCarryOverPreview() {
 
   return yesterdayPlan.tasks
     .map((dpt) => dpt.task)
-    .filter((task) => task.status === "active")
-    .filter((task) => (task.finalQuadrant ?? task.aiQuadrant) !== "Q4");
+    .filter((task) => task.status === "active");
 }
 
 /**
@@ -274,16 +273,37 @@ export async function executeCarryOver(selectedIds: string[]) {
     .map((dpt) => dpt.task)
     .filter((task) => task.status === "active") ?? [];
 
-  // 선택되지 않은 작업 discard 처리
+  // 선택되지 않은 작업 분기 처리
   const selectedSet = new Set(selectedIds);
-  const discardIds = allIncompleteTasks
-    .filter((t) => !selectedSet.has(t.id))
+  const unselectedTasks = allIncompleteTasks.filter((t) => !selectedSet.has(t.id));
+
+  // Q1/Q2 (중요한 작업) → 백로그로 이동 (절대 삭제하지 않음)
+  const importantIds = unselectedTasks
+    .filter((t) => {
+      const q = t.finalQuadrant ?? t.aiQuadrant;
+      return q === "Q1" || q === "Q2";
+    })
     .map((t) => t.id);
 
-  if (discardIds.length > 0) {
+  if (importantIds.length > 0) {
     await prisma.task.updateMany({
-      where: { id: { in: discardIds } },
-      data: { status: "discarded" },
+      where: { id: { in: importantIds } },
+      data: { backlogAt: today },
+    });
+  }
+
+  // Q3/Q4 (비중요 작업) → 소프트 딜리트
+  const unimportantIds = unselectedTasks
+    .filter((t) => {
+      const q = t.finalQuadrant ?? t.aiQuadrant;
+      return q === "Q3" || q === "Q4" || !q;
+    })
+    .map((t) => t.id);
+
+  if (unimportantIds.length > 0) {
+    await prisma.task.updateMany({
+      where: { id: { in: unimportantIds } },
+      data: { status: "discarded", archivedAt: today },
     });
   }
 
