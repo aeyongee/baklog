@@ -2,10 +2,11 @@
 
 import { auth } from "@/lib/auth";
 import { classifyTasks } from "@/lib/ai/classifyTasks";
+import { recalculateConfidence } from "@/lib/ai/recalculateConfidence";
 import { prisma } from "@/lib/db";
 import { parseTaskText, type ParsedTask } from "@/lib/parseTaskText";
 import { ensureUser } from "@/lib/user";
-import { getKSTToday, getKSTTomorrow, getKSTYesterday } from "@/lib/date";
+import { getKSTToday, getKSTYesterday } from "@/lib/date";
 import type { InputJsonValue } from "@prisma/client/runtime/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -24,19 +25,15 @@ export async function addTask(formData: FormData) {
   if (!rawText) return;
 
   // 현재 draft/classified 작업 개수 확인 (20개 제한)
-  const todayStart = getKSTToday();
-  const tomorrowStart = getKSTTomorrow();
-
   const existingCount = await prisma.task.count({
     where: {
       userId,
       status: { in: ["draft", "classified"] },
-      createdAt: { gte: todayStart, lt: tomorrowStart },
     },
   });
 
   if (existingCount >= 20) {
-    throw new Error("하루에 최대 20개까지만 작업을 추가할 수 있습니다.");
+    throw new Error("미분류 작업은 최대 20개까지만 추가할 수 있습니다.");
   }
 
   const parsed = parseTaskText(rawText);
@@ -66,14 +63,10 @@ export async function getTodayTasks() {
   // carry-over는 popup 확인 시 executeCarryOver()로 실행
   // (setup 페이지에서는 자동 실행하지 않음)
 
-  const todayStart = getKSTToday();
-  const tomorrowStart = getKSTTomorrow();
-
   return prisma.task.findMany({
     where: {
       userId,
       status: { in: ["draft", "classified"] },
-      createdAt: { gte: todayStart, lt: tomorrowStart },
     },
     orderBy: { createdAt: "asc" },
   });
@@ -110,14 +103,10 @@ export async function classifyDraftTasks(): Promise<{ error?: string }> {
     image: session.user.image,
   });
 
-  const todayStart = getKSTToday();
-  const tomorrowStart = getKSTTomorrow();
-
   const drafts = await prisma.task.findMany({
     where: {
       userId,
       status: { in: ["draft", "classified"] },
-      createdAt: { gte: todayStart, lt: tomorrowStart },
     },
     select: { id: true, rawText: true, parsed: true },
   });
@@ -142,10 +131,13 @@ export async function classifyDraftTasks(): Promise<{ error?: string }> {
 
   let results;
   try {
-    results = await classifyTasks(input, pref?.customPrompt, isMixed);
+    results = await classifyTasks(input, pref?.customPrompt, isMixed, userId);
   } catch (e) {
     return { error: `AI 분류 실패: ${e instanceof Error ? e.message : "알 수 없는 오류"}` };
   }
+
+  // 서버 사이드 신뢰도 재계산
+  results = await recalculateConfidence(results, userId);
 
   await prisma.$transaction(
     results.map((r) =>
@@ -177,14 +169,10 @@ export async function manualClassifyDraftTasks() {
     image: session.user.image,
   });
 
-  const todayStart = getKSTToday();
-  const tomorrowStart = getKSTTomorrow();
-
   await prisma.task.updateMany({
     where: {
       userId,
       status: "draft",
-      createdAt: { gte: todayStart, lt: tomorrowStart },
     },
     data: { status: "classified" },
   });

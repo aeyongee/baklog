@@ -51,58 +51,65 @@ export default function SetupForm({
   };
 
   return (
-    <>
-      <div className="mt-4">
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* 액션 버튼 — sticky 상단 */}
+      <div className="sticky top-0 z-10 -mx-4 bg-white/80 px-4 pb-3 pt-4 backdrop-blur dark:bg-gray-900/80">
+        <div className="grid grid-cols-2 gap-3">
+          <ClassifyButton
+            disabled={!hasTasks}
+            onPendingChange={setIsClassifying}
+          />
+          <ManualClassifyButton disabled={!hasTasks || isClassifying} />
+        </div>
+      </div>
+
+      {limitReached && (
+        <div className="mt-2 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20">
+          <p className="text-sm text-red-700 dark:text-red-300">
+            미분류 작업은 최대 20개까지만 추가할 수 있습니다.
+          </p>
+        </div>
+      )}
+
+      {/* 작업 리스트 — 스크롤 가능한 메인 영역 */}
+      <div className="flex-1 overflow-y-auto py-3">
+        {optimisticTasks.length > 0 ? (
+          <ul className="space-y-2">
+            {optimisticTasks.map((task, i) => {
+              const isOptimistic = task.id.startsWith("temp-");
+              return (
+                <li
+                  key={task.id}
+                  className={`flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-700 ${isOptimistic ? "opacity-50" : ""}`}
+                >
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    {i + 1}
+                  </span>
+                  <span className="flex-1 text-sm dark:text-gray-100">
+                    {task.rawText}
+                  </span>
+                  {!isOptimistic && <DeleteTaskButton taskId={task.id} />}
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="mt-4">
+            <EmptyState
+              title="오늘 할 일을 입력하세요"
+              description="아래 입력란에 작업을 하나씩 추가하면 AI가 자동으로 분류해 드립니다"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* 입력 — sticky 하단 */}
+      <div className="sticky bottom-0 -mx-4 bg-white/80 px-4 pb-4 pt-3 backdrop-blur dark:bg-gray-900/80">
         <TaskInput
           disabled={isClassifying || limitReached}
           onSubmit={handleTaskSubmit}
         />
       </div>
-
-      {limitReached && (
-        <div className="mt-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
-          <p className="text-sm text-red-700 dark:text-red-300">
-            하루에 최대 20개까지만 작업을 추가할 수 있습니다.
-          </p>
-        </div>
-      )}
-
-      <div className="mt-6 grid grid-cols-2 gap-3">
-        <ClassifyButton
-          disabled={!hasTasks}
-          onPendingChange={setIsClassifying}
-        />
-        <ManualClassifyButton disabled={!hasTasks || isClassifying} />
-      </div>
-
-      {optimisticTasks.length > 0 ? (
-        <ul className="mt-6 space-y-2">
-          {optimisticTasks.map((task, i) => {
-            const isOptimistic = task.id.startsWith("temp-");
-            return (
-              <li
-                key={task.id}
-                className={`flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 ${isOptimistic ? "opacity-50" : ""}`}
-              >
-                <span className="text-xs text-gray-400 dark:text-gray-500">
-                  {i + 1}
-                </span>
-                <span className="flex-1 text-sm dark:text-gray-100">
-                  {task.rawText}
-                </span>
-                {!isOptimistic && <DeleteTaskButton taskId={task.id} />}
-              </li>
-            );
-          })}
-        </ul>
-      ) : (
-        <div className="mt-8">
-          <EmptyState
-            title="오늘 할 일을 입력하세요"
-            description="위 입력란에 작업을 하나씩 추가하면 AI가 자동으로 분류해 드립니다"
-          />
-        </div>
-      )}
-    </>
+    </div>
   );
 }

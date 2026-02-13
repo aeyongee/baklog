@@ -1,6 +1,10 @@
 import { openai, OPENAI_MODEL } from "./openai";
 import type { ParsedTask } from "@/lib/parseTaskText";
 import type { Quadrant } from "@prisma/client";
+import {
+  buildFewShotExamples,
+  formatFewShotSection,
+} from "./buildFewShotExamples";
 
 export interface ClassifyInput {
   id: string;
@@ -66,6 +70,7 @@ export async function classifyTasks(
   tasks: ClassifyInput[],
   customPrompt?: string | null,
   isMixed?: boolean,
+  userId?: string | null,
 ): Promise<ClassifyResult[]> {
   if (tasks.length === 0) return [];
 
@@ -76,6 +81,15 @@ export async function classifyTasks(
   let systemPrompt = customPrompt || SYSTEM_PROMPT;
   if (isMixed) {
     systemPrompt += CATEGORY_PROMPT_SUFFIX;
+  }
+
+  // Few-shot: 사용자 교정 이력을 프롬프트에 추가
+  if (userId) {
+    const examples = await buildFewShotExamples(userId);
+    const fewShotSection = formatFewShotSection(examples);
+    if (fewShotSection) {
+      systemPrompt += fewShotSection;
+    }
   }
 
   const response = await openai.chat.completions.create({

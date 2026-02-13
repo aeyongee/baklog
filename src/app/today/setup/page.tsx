@@ -34,10 +34,21 @@ export default async function TodaySetup() {
   const carryOverTasks = await getCarryOverPreview();
 
   const tasks = await getTodayTasks();
+  const draftCount = tasks.filter(
+    (t) => t.status === "draft" || t.status === "classified",
+  ).length;
+
   return (
-    <main className="mx-auto max-w-lg p-4">
-      <div>
-        <h1 className="text-xl font-bold dark:text-gray-100">오늘의 할 일</h1>
+    <main className="mx-auto flex h-[100dvh] max-w-lg flex-col p-4">
+      <div className="shrink-0">
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold dark:text-gray-100">오늘의 할 일</h1>
+          {draftCount > 0 && (
+            <span className="rounded-full bg-[#FF2F92] px-2 py-0.5 text-xs font-medium text-white">
+              {draftCount}개 미분류
+            </span>
+          )}
+        </div>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           할 일을 입력하면 우선순위 분류는 AI가 해요.
         </p>

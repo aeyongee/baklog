@@ -38,18 +38,19 @@ export default function TaskInput({
         ref={inputRef}
         type="text"
         name="rawText"
-        placeholder="작업을 입력하세요"
+        placeholder="할 일을 입력하세요..."
         autoFocus
         autoComplete="off"
         disabled={disabled}
-        className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:border-black dark:focus:border-[#FF2F92] focus:outline-none disabled:opacity-50"
+        className="flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm focus:border-[#FF2F92] focus:outline-none disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-[#FF2F92]"
       />
       <button
         type="submit"
         disabled={disabled}
-        className="shrink-0 rounded-lg bg-black dark:bg-[#FF2F92] px-4 py-2 text-sm font-medium text-white enabled:hover:bg-gray-800 dark:enabled:hover:bg-[#e6287f] disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FF2F92] text-lg font-bold text-white transition-colors enabled:hover:bg-[#e6287f] disabled:cursor-not-allowed disabled:opacity-50"
+        aria-label="추가"
       >
-        추가
+        +
       </button>
     </form>
   );

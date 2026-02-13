@@ -3,7 +3,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ensureUser } from "@/lib/user";
-import { getKSTToday, getKSTTomorrow } from "@/lib/date";
+import { getKSTToday } from "@/lib/date";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -22,14 +22,10 @@ export async function getClassifiedTasks() {
     image: session.user.image,
   });
 
-  const todayStart = getKSTToday();
-  const tomorrowStart = getKSTTomorrow();
-
   const tasks = await prisma.task.findMany({
     where: {
       userId,
       status: "classified",
-      createdAt: { gte: todayStart, lt: tomorrowStart },
     },
     orderBy: { createdAt: "desc" },
     take: 50,
@@ -128,13 +124,11 @@ export async function finalizeTodayPlan() {
   });
 
   const todayStart = getKSTToday();
-  const tomorrowStart = getKSTTomorrow();
 
   const tasks = await prisma.task.findMany({
     where: {
       userId,
       status: "classified",
-      createdAt: { gte: todayStart, lt: tomorrowStart },
     },
     orderBy: { createdAt: "desc" },
   });
