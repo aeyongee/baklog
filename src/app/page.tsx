@@ -1,11 +1,20 @@
 import { auth, signIn } from "@/lib/auth";
+import Image from "next/image";
 
 export default async function Home() {
   const session = await auth();
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
-      <div className="text-center">
+      <div className="flex flex-col items-center text-center">
+        <Image
+          src="/logo.png"
+          alt="Baklog"
+          width={130}
+          height={130}
+          className="mb-4"
+          priority
+        />
         <h1 className="text-3xl font-bold">Baklog</h1>
         <p className="mt-2 text-gray-500 dark:text-gray-400">
           일잘러로 거듭나기 위한 작업 관리 서비스

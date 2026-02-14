@@ -52,15 +52,12 @@ export default function SetupForm({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* 액션 버튼 — sticky 상단 */}
+      {/* 입력 — sticky 상단 */}
       <div className="sticky top-0 z-10 -mx-4 bg-white/80 px-4 pb-3 pt-4 backdrop-blur dark:bg-gray-900/80">
-        <div className="grid grid-cols-2 gap-3">
-          <ClassifyButton
-            disabled={!hasTasks}
-            onPendingChange={setIsClassifying}
-          />
-          <ManualClassifyButton disabled={!hasTasks || isClassifying} />
-        </div>
+        <TaskInput
+          disabled={isClassifying || limitReached}
+          onSubmit={handleTaskSubmit}
+        />
       </div>
 
       {limitReached && (
@@ -97,18 +94,21 @@ export default function SetupForm({
           <div className="mt-4">
             <EmptyState
               title="오늘 할 일을 입력하세요"
-              description="아래 입력란에 작업을 하나씩 추가하면 AI가 자동으로 분류해 드립니다"
+              description="위 입력란에 작업을 하나씩 추가하면 AI가 자동으로 분류해 드립니다"
             />
           </div>
         )}
       </div>
 
-      {/* 입력 — sticky 하단 */}
+      {/* 액션 버튼 — sticky 하단 */}
       <div className="sticky bottom-0 -mx-4 bg-white/80 px-4 pb-4 pt-3 backdrop-blur dark:bg-gray-900/80">
-        <TaskInput
-          disabled={isClassifying || limitReached}
-          onSubmit={handleTaskSubmit}
-        />
+        <div className="grid grid-cols-2 gap-3">
+          <ClassifyButton
+            disabled={!hasTasks}
+            onPendingChange={setIsClassifying}
+          />
+          <ManualClassifyButton disabled={!hasTasks || isClassifying} />
+        </div>
       </div>
     </div>
   );

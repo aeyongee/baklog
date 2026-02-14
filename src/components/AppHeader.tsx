@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import UserSettingsButton from "./UserSettingsButton";
 import GuideButton from "./GuideButton";
 import LogoutButton from "./LogoutButton";
@@ -13,7 +14,15 @@ export default async function AppHeader() {
   return (
     <header className="border-b dark:border-gray-700 bg-white dark:bg-gray-900">
       <div className="flex items-center justify-between px-4 py-3">
-        <span className="text-sm font-bold text-[#FF2F92]">Baklog</span>
+        <Link href="/today" className="flex items-center">
+          <Image
+            src="/logo.png"
+            alt="Baklog"
+            width={33}
+            height={33}
+            className="h-8 w-8"
+          />
+        </Link>
         <div className="flex items-center gap-3">
           <GuideButton />
           <UserSettingsButton
