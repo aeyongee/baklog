@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
+import { markGuideAsCompleted } from "./guide-actions";
 
 interface GuideModalProps {
   isOpen: boolean;
@@ -9,7 +10,8 @@ interface GuideModalProps {
 
 export default function GuideModal({ isOpen, onClose }: GuideModalProps) {
   const [step, setStep] = useState(0);
-  const totalSteps = 3;
+  const [, startTransition] = useTransition();
+  const totalSteps = 4;
 
   // ESC 키로 닫기
   useEffect(() => {
@@ -59,7 +61,12 @@ export default function GuideModal({ isOpen, onClose }: GuideModalProps) {
   };
 
   const handleFinish = () => {
-    onClose();
+    startTransition(async () => {
+      await markGuideAsCompleted();
+      onClose();
+      // 페이지 새로고침하여 툴팁 숨김
+      window.location.reload();
+    });
   };
 
   return (
@@ -75,9 +82,10 @@ export default function GuideModal({ isOpen, onClose }: GuideModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b dark:border-gray-700">
           <h2 className="text-lg font-bold dark:text-gray-100">
-            {step === 0 && "아이젠하워 매트릭스란?"}
-            {step === 1 && "4개의 사분면"}
-            {step === 2 && "효과적으로 사용하기"}
+            {step === 0 && "❓ 왜 우리는 항상 바쁠까요?"}
+            {step === 1 && "💡 이것만 기억하세요"}
+            {step === 2 && "🔍 4개의 사분면 (Q1 ~ Q4)"}
+            {step === 3 && "✅ 이렇게 사용하세요"}
           </h2>
           <button
             type="button"
@@ -103,311 +111,219 @@ export default function GuideModal({ isOpen, onClose }: GuideModalProps) {
         </div>
 
         {/* Content with slide animation */}
-        <div className="relative overflow-hidden">
+        <div className="relative overflow-hidden min-h-[380px]">
           <div
-            className="flex transition-transform duration-300 ease-in-out"
+            className="flex transition-transform duration-300 ease-in-out min-h-[380px]"
             style={{ transform: `translateX(-${step * 100}%)` }}
           >
-            {/* Step 1: 개념 소개 */}
+            {/* PAGE 1: 문제 인식 */}
             <div className="min-w-full px-5 py-6">
-              <div className="space-y-4">
-                {/* 아이젠하워 매트릭스 개념 */}
-                <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-xl p-5 border border-indigo-200 dark:border-indigo-800">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1">
-                      <p className="font-bold text-gray-900 dark:text-gray-100 mb-2">
-                        우리에게 주어진 시간을 {""}
-                        <span className="font-semibold text-indigo-700 dark:text-indigo-400">
-                          4분할
+              <div className="space-y-5">
+                <div className="space-y-3 text-center">
+                  <br />
+                  <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">
+                    중요한 일을 하려는데
+                  </p>
+                  <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">
+                    갑자기 들어온 요청과 알림에 밀려
+                  </p>
+                  <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">
+                    하루가 끝나버린 적 있나요?
+                  </p>
+                </div>
+
+                <br />
+
+                <div
+                  className="my-4 border-t border-gray-300/60 dark:border-gray-600/40 w-2/3 mx-auto"
+                  style={{ opacity: 0.7 }}
+                ></div>
+
+                <br />
+
+                <div className="space-y-3 text-center">
+                  <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                    긴급한 일은 항상 중요해 보입니다.
+                  </p>
+                  <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                    하지만 대부분은 그렇지 않습니다.
+                  </p>
+                </div>
+
+                <div className="mt-9 bg-[#FF2F92]/10 dark:bg-[#FF2F92]/20 rounded-xl p-4 border border-[#FF2F92]/30">
+                  <p className="text-sm text-center text-gray-700 dark:text-gray-300 leading-relaxed">
+                    Baklog는{" "}
+                    <span className="font-bold text-[#FF2F92]">
+                      긴급함의 착각
+                    </span>
+                    에 빠지지 않기 위해 만들어졌습니다 😀
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* PAGE 2: 판단 기준 */}
+            <div className="min-w-full px-5 py-6">
+              <div className="space-y-5">
+                <div className="space-y-4">
+                  {/* 질문 1 */}
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-5 border border-blue-200 dark:border-blue-800">
+                    <p className="text-sl font-medium text-gray-900 dark:text-gray-100 mb-2">
+                      <strong>질문 1</strong>
+                    </p>
+                    <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
+                      이 일을 하지 않으면
+                      <br />
+                      1주일 또는 그 이상 뒤에 문제가 생기나요?
+                    </p>
+                    <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                      → YES = 중요
+                    </p>
+                  </div>
+
+                  {/* 질문 2 */}
+                  <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl p-5 border border-orange-200 dark:border-orange-800">
+                    <p className="text-sl font-medium text-gray-900 dark:text-gray-100 mb-2">
+                      <strong>질문 2</strong>
+                    </p>
+                    <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
+                      오늘 안 하면
+                      <br />나 또는 누군가가 곤란해지나요?
+                    </p>
+                    <p className="text-sm font-bold text-orange-600 dark:text-orange-400">
+                      → YES = 긴급
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-center text-gray-700 dark:text-gray-300">
+                    이 두 질문으로 대부분의 작업을 분류할 수 있어요 ❗️
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* PAGE 3: 4개 사분면 */}
+            <div className="min-w-full px-3 h-[450px] flex items-center justify-center">
+              <div className="grid grid-cols-2 gap-2 w-full auto-rows-fr">
+                {/* Q1 */}
+                <div className="border-2 border-red-300 dark:border-red-700 rounded-xl p-4 bg-red-50 dark:bg-red-900/20 flex flex-col">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-base font-bold text-red-700 dark:text-red-400">
+                      Q1 🚨
+                    </span>
+                  </div>
+                  <p className="text-sl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    중요하고 긴급한 일
+                  </p>
+                  <div className="space-y-1 text-xs text-gray-700 dark:text-gray-300">
+                    <p>• 지금 당장 해결하지 않으면 문제가 커지는 일</p>
+                    <p>• 빠르게 처리하세요!</p>
+                    <p className="text-red-600 dark:text-red-400 font-medium">
+                      👉 이 영역이 많다면 구조 점검이 필요
+                    </p>
+                  </div>
+                </div>
+
+                {/* Q2 */}
+                <div className="border-2 border-[#FF2F92]/40 dark:border-[#FF2F92]/60 rounded-xl p-4 bg-[#FF2F92]/10 dark:bg-[#FF2F92]/20 flex flex-col">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-base font-bold text-[#FF2F92] dark:text-[#FF2F92]">
+                      Q2 ⭐️
+                    </span>
+                  </div>
+                  <p className="text-sl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    중요하지만 긴급하지 않은 일
+                  </p>
+                  <div className="space-y-1 text-xs text-gray-700 dark:text-gray-300">
+                    <p className="font-bold text-[#FF2F92] dark:text-[#FF2F92]">
+                      • Baklog의 핵심 영역
+                    </p>
+                    <p>• 일정 관리와 집중이 필요한 일</p>
+                    <p className="font-medium">
+                      • 남는 시간에 하는 일이 아닙니다 🙅‍♂️
+                    </p>
+                  </div>
+                </div>
+
+                {/* Q3 */}
+                <div className="border-2 border-yellow-300 dark:border-yellow-700 rounded-xl p-4 bg-yellow-50 dark:bg-yellow-900/20 flex flex-col">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-base font-bold text-yellow-700 dark:text-yellow-400">
+                      Q3 💣
+                    </span>
+                  </div>
+                  <p className="text-sl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    중요하지 않지만 긴급해 보이는 일
+                  </p>
+                  <div className="space-y-1 text-xs text-gray-700 dark:text-gray-300">
+                    <p>• 급해 보여도, 꼭 내가 해야 하는 일인가?</p>
+                    <p>• 빠르게 쳐내거나 위임하세요</p>
+                    <p>• 중요하다고 착각하기 쉬운 일입니다 🙄</p>
+                  </div>
+                </div>
+
+                {/* Q4 */}
+                <div className="border-2 border-gray-300 dark:border-gray-600 rounded-xl p-4 bg-gray-50 dark:bg-gray-800/50 flex flex-col">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-base font-bold text-gray-700 dark:text-gray-400">
+                      Q4 🧹
+                    </span>
+                  </div>
+                  <p className="text-sl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    중요하지도 긴급하지도 않은 일
+                  </p>
+                  <div className="space-y-1 text-xs text-gray-700 dark:text-gray-400">
+                    <p>• 안 해도 아무 일도 일어나지 않는 일</p>
+                    <p>• 과감히 버리세요! 🗑️</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* PAGE 4: 운영 원칙 */}
+            <div className="min-w-full px-5 py-6">
+              <div className="space-y-5">
+                <div className="space-y-3">
+                  {/* 체크리스트 */}
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-5 border border-purple-200 dark:border-purple-800">
+                    <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+                      <p className="flex items-start gap-2">
+                        <span className="text-purple-600 dark:text-purple-400 font-bold">
+                          ✓
                         </span>
-                        로 나누어 처리하는 방법입니다 😁
+                        Q2는 하루 1~2개만 잡아요.
                       </p>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                        모든 사람에게 하루는 24시간이므로, 어떻게 시간을
-                        배분하느냐가 성과를 결정합니다.
+                      <p className="flex items-start gap-2">
+                        <span className="text-purple-600 dark:text-purple-400 font-bold">
+                          ✓
+                        </span>
+                        Q1이 3개 이상이면 Q2를 미뤘다는 신호예요.
                       </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 중요도 x 긴급도 */}
-                <div className="bg-linear-to-br from-pink-50 to-purple-50 dark:from-pink-900/20 dark:to-purple-900/20 rounded-xl p-4 border border-pink-100 dark:border-pink-800">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-[#FF2F92] flex items-center justify-center shrink-0">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <rect
-                          x="3"
-                          y="3"
-                          width="18"
-                          height="18"
-                          rx="2"
-                          ry="2"
-                        />
-                        <line x1="3" y1="12" x2="21" y2="12" />
-                        <line x1="12" y1="3" x2="12" y2="21" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-900 dark:text-gray-100">
-                        중요도 × 긴급도
+                      <p className="flex items-start gap-2">
+                        <span className="text-purple-600 dark:text-purple-400 font-bold">
+                          ✓
+                        </span>
+                        Q3는 하루 한 번 묶어서 처리해요.
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        두 축으로 우리가 처리해야 할 일을 분류합니다 ❗️
+                      <p className="flex items-start gap-2">
+                        <span className="text-red-600 dark:text-red-400 font-bold">
+                          ⚠️
+                        </span>
+                        <span className="font-medium">
+                          Q2를 미루면 Q1이 됩니다.
+                        </span>
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1 h-6 w-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-                      <span className="text-blue-600 dark:text-blue-400 font-bold text-sm">
-                        1
-                      </span>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-gray-100">
-                        중요도 (Important)
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        내 목표/가치/성과에 장기적으로 크게 영향을 미치는 일
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1 h-6 w-6 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
-                      <span className="text-orange-600 dark:text-orange-400 font-bold text-sm">
-                        2
-                      </span>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-gray-100">
-                        긴급도 (Urgent)
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        시간이 지나면 가치가 크게 떨어지고, 피해가 커지는 일
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <br></br>
-
-                {/* 핵심 */}
-                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
-                    <span className="font-semibold">💡 핵심:</span> 집중해야 할
-                    일과 미뤄도 되는 일을 구분하여, 더 효율적인 시간 관리를 할
-                    수 있습니다.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Step 2: 사분면 설명 */}
-            <div className="min-w-full px-5 py-6">
-              <div className="space-y-4">
-                {/* Matrix Visualization */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  {/* Q1 */}
-                  <div className="border-2 border-red-300 dark:border-red-700 rounded-lg p-4 bg-red-50 dark:bg-red-900/20">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-bold text-red-700 dark:text-red-400">
-                        Q1
-                      </span>
-                      <span className="text-sm text-red-600 dark:text-red-400">
-                        🚨 중요 + 긴급
-                      </span>
-                    </div>
-                    <ul className="space-y-1 text-xs text-gray-700 dark:text-gray-300 mb-2">
-                      <li>✔ 마감 임박</li>
-                      <li>✔ 안하면 피해 발생</li>
-                      <li>✔ 이미 문제 발생 중</li>
-                    </ul>
-                    <p className="text-sm font-semibold text-red-700 dark:text-red-400">
-                      👉 즉시 처리
-                    </p>
-                  </div>
-
-                  {/* Q2 */}
-                  <div className="border-2 border-pink-300 dark:border-pink-700 rounded-lg p-4 bg-pink-50 dark:bg-pink-900/20">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-bold text-pink-700 dark:text-pink-400">
-                        Q2
-                      </span>
-                      <span className="text-xs text-pink-600 dark:text-pink-400">
-                        중요 + 비긴급
-                      </span>
-                    </div>
-                    <ul className="space-y-1 text-xs text-gray-700 dark:text-gray-300 mb-2">
-                      <li>✔ 장기 목표에 기여</li>
-                      <li>✔ 성장/공부/건강</li>
-                      <li>⚠ 미루면 Q1됨</li>
-                    </ul>
-                    <p className="text-xs font-semibold text-pink-700 dark:text-pink-400">
-                      👉 일정에 고정
-                    </p>
-                  </div>
-
-                  {/* Q3 */}
-                  <div className="border-2 border-amber-300 dark:border-amber-700 rounded-lg p-4 bg-amber-50 dark:bg-amber-900/20">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-bold text-amber-700 dark:text-amber-400">
-                        Q3
-                      </span>
-                      <span className="text-xs text-amber-600 dark:text-amber-400">
-                        덜중요 + 긴급
-                      </span>
-                    </div>
-                    <ul className="space-y-1 text-xs text-gray-700 dark:text-gray-300 mb-2">
-                      <li>✔ 누군가 재촉함</li>
-                      <li>✔ 요청/전화/메시지</li>
-                      <li>✖ 장기 가치 낮음</li>
-                    </ul>
-                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
-                      👉 위임/거절/짧게
-                    </p>
-                  </div>
-
-                  {/* Q4 */}
-                  <div className="border-2 border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-bold text-gray-700 dark:text-gray-400">
-                        Q4
-                      </span>
-                      <span className="text-xs text-gray-600 dark:text-gray-400">
-                        덜중요 + 비긴급
-                      </span>
-                    </div>
-                    <ul className="space-y-1 text-xs text-gray-700 dark:text-gray-400 mb-2">
-                      <li>✔ 시간 보내기용</li>
-                      <li>✔ 안 해도 문제 없음</li>
-                      <li>✔ 의미 없는 소비</li>
-                    </ul>
-                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-400">
-                      👉 제거/제한
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-                  <p className="text-sm text-purple-900 dark:text-purple-200 font-medium mb-2">
-                    🎯 이상적인 시간 배분
-                  </p>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-gray-700 dark:text-gray-300">
-                        Q2 (중요)
-                      </span>
-                      <span className="font-bold text-blue-600 dark:text-blue-400">
-                        60%
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-700 dark:text-gray-300">
-                        Q1 (위기)
-                      </span>
-                      <span className="font-bold text-red-600 dark:text-red-400">
-                        20%
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-700 dark:text-gray-300">
-                        Q3 (방해)
-                      </span>
-                      <span className="font-bold text-yellow-600 dark:text-yellow-400">
-                        15%
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-700 dark:text-gray-300">
-                        Q4 (낭비)
-                      </span>
-                      <span className="font-bold text-gray-600 dark:text-gray-400">
-                        5%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Step 3: 사용 팁 */}
-            <div className="min-w-full px-5 py-6">
-              <div className="space-y-4">
-                <div className="bg-linear-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-5 border border-green-200 dark:border-green-800">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-2xl">🤖</span>
-                    <p className="font-bold text-gray-900 dark:text-gray-100">
-                      AI가 먼저 분류하지만
-                    </p>
-                  </div>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
-                    당신이 더 잘 알아요. AI 분류 결과를 확인하고 중요도/긴급도
-                    토글로 조정하세요.
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                    <span className="text-xl">💎</span>
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                        Q2 작업을 늘리세요
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        중요하지만 긴급하지 않은 일에 시간을 투자하면,
-                        위기(Q1)가 줄어듭니다. 장기적으로 가장 높은 가치를
-                        만듭니다.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-                    <span className="text-xl">⚡</span>
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                        Q3는 최소화하세요
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        긴급해 보이지만 중요하지 않은 일들. 위임하거나
-                        거절하거나, 최소한의 시간만 투자하세요.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
-                    <span className="text-xl">🗑️</span>
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                        Q4는 과감하게 제거
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        중요하지도 긴급하지도 않은 일. 시간 낭비입니다. 용기
-                        있게 삭제하세요.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-pink-50 dark:bg-pink-900/20 rounded-lg p-4 border border-pink-200 dark:border-pink-800">
-                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                    <span className="font-semibold text-pink-700 dark:text-pink-400">
-                      ✨ 기억하세요:
-                    </span>{" "}
-                    바쁜 것과 생산적인 것은 다릅니다. Q2에 집중하는 사람이
-                    장기적으로 성공합니다.
+                <div className="mt-6 bg-[#FF2F92]/10 dark:bg-[#FF2F92]/20 rounded-xl p-5 border-2 border-[#FF2F92]/30">
+                  <p className="text-base text-center font-bold text-gray-900 dark:text-gray-100 leading-relaxed">
+                    목표는 더 많이 하는 것이 아니라,
+                    <br />
+                    중요한 일을 지키는 것입니다 ✨
                   </p>
                 </div>
               </div>

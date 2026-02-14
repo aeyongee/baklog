@@ -10,9 +10,10 @@ export default async function Home() {
         <Image
           src="/logo.png"
           alt="Baklog"
-          width={130}
-          height={130}
-          className="mb-4"
+          width={60}
+          height={60}
+          className="mb-4 w-auto h-auto max-w-[100px]"
+          quality={100}
           priority
         />
         <h1 className="text-3xl font-bold">Baklog</h1>

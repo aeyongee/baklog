@@ -3,11 +3,15 @@
 import { useState } from "react";
 import GuideModal from "./GuideModal";
 
-export default function GuideButton() {
+interface GuideButtonProps {
+  showTooltip?: boolean;
+}
+
+export default function GuideButton({ showTooltip = false }: GuideButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <>
+    <div className="relative">
       <button
         type="button"
         onClick={() => setIsOpen(true)}
@@ -33,7 +37,26 @@ export default function GuideButton() {
         </svg>
       </button>
 
+      {showTooltip && (
+        <>
+          {/* 펄싱 효과를 위한 링 */}
+          <div className="absolute -top-1 -right-1 h-3 w-3">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#FF2F92] opacity-75"></span>
+            <span className="relative inline-flex h-3 w-3 rounded-full bg-[#FF2F92]"></span>
+          </div>
+
+          {/* 툴팁 */}
+          <div className="absolute top-0 -left-2 -translate-x-full z-20 animate-bounce-subtle">
+            <div className="relative bg-[#FF2F92] text-white text-xs font-medium px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+              사용법을 확인하세요! 👈
+              {/* 화살표 */}
+              <div className="absolute top-1/2 -right-1 -translate-y-1/2 w-2 h-2 bg-[#FF2F92] rotate-45"></div>
+            </div>
+          </div>
+        </>
+      )}
+
       <GuideModal isOpen={isOpen} onClose={() => setIsOpen(false)} />
-    </>
+    </div>
   );
 }
