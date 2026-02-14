@@ -111,6 +111,7 @@ model UserPreference {
   importanceBias      Float    @default(0)
   urgencyBias         Float    @default(0)
   onboardingCompleted Boolean  @default(false)
+  guideCompleted      Boolean  @default(false)
   surveyAnswers       Json?
   customPrompt        String?  @db.Text
   defaultView         String   @default("list")
