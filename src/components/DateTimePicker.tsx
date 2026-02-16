@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DayPicker } from "react-day-picker";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -44,26 +44,40 @@ export default function DateTimePicker({
   const [currentMonth, setCurrentMonth] = useState<Date>(value || new Date());
 
   // 기본값: value가 있으면 그 시간, 없으면 현재 시간
-  const getDefaultTime = () => {
-    if (value) {
+  const getDefaultTime = (date: Date | null) => {
+    if (date) {
       return {
-        hours: format(value, "HH"),
-        minutes: format(value, "mm"),
+        hours: format(date, "HH"),
+        minutes: format(date, "mm"),
       };
     }
     const now = new Date();
     const currentMinutes = now.getMinutes();
     // 5분 단위로 반올림
     const roundedMinutes = Math.ceil(currentMinutes / 5) * 5;
+    const finalMinutes = roundedMinutes >= 60 ? 0 : roundedMinutes;
+    const finalHours = roundedMinutes >= 60 ? now.getHours() + 1 : now.getHours();
+
     return {
-      hours: format(now, "HH"),
-      minutes: String(roundedMinutes === 60 ? 0 : roundedMinutes).padStart(2, "0"),
+      hours: String(finalHours % 24).padStart(2, "0"),
+      minutes: String(finalMinutes).padStart(2, "0"),
     };
   };
 
-  const defaultTime = getDefaultTime();
+  const defaultTime = getDefaultTime(value);
   const [hours, setHours] = useState(defaultTime.hours);
   const [minutes, setMinutes] = useState(defaultTime.minutes);
+
+  // value가 변경될 때 시간 state 업데이트
+  useEffect(() => {
+    if (value) {
+      const time = getDefaultTime(value);
+      setHours(time.hours);
+      setMinutes(time.minutes);
+      setSelectedDate(value);
+      setCurrentMonth(value);
+    }
+  }, [value]);
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
@@ -115,10 +129,22 @@ export default function DateTimePicker({
     }
   };
 
+  // Popover가 열릴 때 value가 없으면 현재 시간으로 초기화
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen && !value) {
+      const time = getDefaultTime(null);
+      setHours(time.hours);
+      setMinutes(time.minutes);
+      setSelectedDate(undefined);
+      setCurrentMonth(new Date());
+    }
+    setOpen(isOpen);
+  };
+
   return (
     <>
       <style>{customStyles}</style>
-      <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Root open={open} onOpenChange={handleOpenChange}>
         <Popover.Trigger asChild>
           <button
             type="button"
