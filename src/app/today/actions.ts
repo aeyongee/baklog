@@ -421,3 +421,35 @@ export async function archiveQ3Task(taskId: string) {
   revalidatePath("/backlog");
   revalidatePath("/archive");
 }
+
+/**
+ * Task 마감일 업데이트 (오늘의 작업 페이지)
+ */
+export async function updateTaskDueDate(
+  taskId: string,
+  dueDate: Date | null,
+) {
+  const session = await auth();
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const userId = await ensureUser({
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  });
+
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, userId },
+  });
+
+  if (!task) throw new Error("Task not found");
+
+  await prisma.task.update({
+    where: { id: taskId },
+    data: { dueDate },
+  });
+
+  console.log(`[UpdateDueDate] taskId: ${taskId}, dueDate: ${dueDate}`);
+
+  revalidatePath("/today");
+}

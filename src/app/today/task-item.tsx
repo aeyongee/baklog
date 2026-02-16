@@ -1,7 +1,7 @@
 "use client";
 
-import { completeTask, discardTask } from "./actions";
-import { useTransition } from "react";
+import { completeTask, discardTask, updateTaskDueDate } from "./actions";
+import { useState, useTransition } from "react";
 import type { Task, Quadrant, TaskOrigin } from "@prisma/client";
 
 const QUADRANT_COLORS: Record<Quadrant, string> = {
@@ -28,6 +28,24 @@ export default function TodayTaskItem({
   isCompleted: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [showDueDateInput, setShowDueDateInput] = useState(false);
+
+  // datetime-local input 포맷 (YYYY-MM-DDTHH:mm)
+  // Next.js에서 Server → Client 전달 시 Date는 string으로 직렬화됨
+  const formatDateTimeLocal = (date: Date | string | null) => {
+    if (!date) return "";
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  const [dueDateInput, setDueDateInput] = useState(
+    formatDateTimeLocal(task.dueDate)
+  );
 
   const handleComplete = () => {
     startTransition(async () => {
@@ -40,6 +58,45 @@ export default function TodayTaskItem({
       startTransition(async () => {
         await discardTask(task.id);
       });
+    }
+  };
+
+  const handleDueDateChange = (dateTimeStr: string) => {
+    setDueDateInput(dateTimeStr);
+    const newDate = dateTimeStr ? new Date(dateTimeStr) : null;
+    startTransition(async () => {
+      await updateTaskDueDate(task.id, newDate);
+    });
+  };
+
+  const formatDueDate = (date: Date | string | null) => {
+    if (!date) return null;
+    const d = new Date(date);
+    const now = new Date();
+    const diffMs = d.getTime() - now.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+
+    const timeStr = d.toLocaleTimeString("ko-KR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+
+    if (diffDays < 0) {
+      return `⏰ ${Math.abs(diffDays)}일 전 ${timeStr} (지남)`;
+    } else if (diffDays === 0) {
+      if (diffHours < 0) {
+        return `⏰ ${Math.abs(diffHours)}시간 전 (지남)`;
+      } else if (diffHours < 3) {
+        return `⏰ ${diffHours}시간 후`;
+      } else {
+        return `⏰ 오늘 ${timeStr}`;
+      }
+    } else if (diffDays === 1) {
+      return `⏰ 내일 ${timeStr}`;
+    } else {
+      return `⏰ ${diffDays}일 후 ${timeStr}`;
     }
   };
 
@@ -125,15 +182,75 @@ export default function TodayTaskItem({
         <p className="text-sm text-gray-600 mb-3 ml-9 italic">💡 {task.aiReason}</p>
       )}
 
-      <div className="ml-9">
-        <button
-          type="button"
-          onClick={handleDiscard}
-          disabled={isPending}
-          className="text-sm text-gray-500 hover:text-red-600 transition disabled:opacity-50"
-        >
-          ✕ 폐기
-        </button>
+      <div className="ml-9 space-y-2">
+        {/* 마감일 표시 및 수정 */}
+        {task.dueDate && !showDueDateInput ? (
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-gray-700">
+              {formatDueDate(task.dueDate)}
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowDueDateInput(true)}
+              className="text-xs text-blue-600 hover:text-blue-800"
+            >
+              수정
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-gray-600">📅 마감:</label>
+            <input
+              type="datetime-local"
+              value={dueDateInput}
+              onChange={(e) => handleDueDateChange(e.target.value)}
+              disabled={isPending}
+              className="text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+            />
+            {dueDateInput && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleDueDateChange("")}
+                  disabled={isPending}
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+                {showDueDateInput && task.dueDate && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDueDateInput(false)}
+                    className="text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    완료
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={handleDiscard}
+            disabled={isPending}
+            className="text-sm text-gray-500 hover:text-red-600 transition disabled:opacity-50"
+          >
+            ✕ 폐기
+          </button>
+          {!showDueDateInput && !task.dueDate && (
+            <button
+              type="button"
+              onClick={() => setShowDueDateInput(true)}
+              disabled={isPending}
+              className="text-sm text-gray-500 hover:text-blue-600 transition disabled:opacity-50"
+            >
+              📅 마감일 추가
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

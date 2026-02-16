@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import type { Task, Quadrant, TaskOrigin } from "@prisma/client";
 import ConfirmDialog from "./ConfirmDialog";
+import DateTimePicker from "./DateTimePicker";
+import { updateTaskDueDate } from "@/app/today/actions";
 
 export type TaskWithOrigin = Task & { origin?: TaskOrigin };
 
@@ -44,6 +46,12 @@ export default function TaskCard({
   const meta = QUADRANT_META[quadrant];
   const originBadge = task.origin ? ORIGIN_LABELS[task.origin] : null;
   const categoryBadge = task.category ? CATEGORY_LABELS[task.category] : null;
+
+  const handleDueDateChange = (date: Date | null) => {
+    startTransition(async () => {
+      await updateTaskDueDate(task.id, date);
+    });
+  };
 
   const handleComplete = () => {
     if (!onComplete) return;
@@ -147,10 +155,27 @@ export default function TaskCard({
             )}
           </div>
 
-          {/* AI 이유 */}
-          {!compact && task.aiReason && (
-            <p className="mt-1.5 text-xs text-gray-400 leading-relaxed">{task.aiReason}</p>
-          )}
+          {/* AI 이유 & 마감일 행 */}
+          <div className="mt-2 flex items-end justify-between gap-2">
+            {/* AI 이유 (왼쪽) */}
+            {!compact && task.aiReason ? (
+              <p className="text-xs text-gray-400 leading-relaxed flex-1">{task.aiReason}</p>
+            ) : (
+              <div className="flex-1" />
+            )}
+
+            {/* 마감일 (오른쪽) */}
+            {!isCompleted && (
+              <div className="shrink-0">
+                <DateTimePicker
+                  value={task.dueDate ? new Date(task.dueDate) : null}
+                  onChange={handleDueDateChange}
+                  disabled={isPending}
+                  compact={compact}
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 폐기 버튼 */}

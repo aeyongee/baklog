@@ -44,6 +44,7 @@ export async function addTask(formData: FormData) {
       rawText,
       parsed: parsed as InputJsonValue,
       status: "draft",
+      dueDate: parsed.dueDate,
     },
   });
 

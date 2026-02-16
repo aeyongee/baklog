@@ -1,6 +1,6 @@
 "use client";
 
-import { updateTaskClassification, updateTaskCategory } from "./actions";
+import { updateTaskClassification, updateTaskCategory, updateTaskDueDate } from "./actions";
 import { useState, useTransition } from "react";
 import type { Quadrant } from "@prisma/client";
 
@@ -16,6 +16,7 @@ type Task = {
   finalUrgent: boolean | null;
   finalQuadrant: Quadrant | null;
   category: string | null;
+  dueDate: Date | null;
 };
 
 const QUADRANT_LABELS: Record<Quadrant, string> = {
@@ -42,10 +43,34 @@ export default function TaskReviewItem({ task }: { task: Task }) {
   const isManual = !task.aiQuadrant;
   const currentCategory = task.category;
 
+  // datetime-local input 포맷 (YYYY-MM-DDTHH:mm)
+  const formatDateTimeLocal = (date: Date | null) => {
+    if (!date) return "";
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  const [dueDateInput, setDueDateInput] = useState(
+    formatDateTimeLocal(task.dueDate)
+  );
+
   const handleCategoryToggle = (cat: "work" | "personal") => {
     const newCat = currentCategory === cat ? null : cat;
     startTransition(async () => {
       await updateTaskCategory(task.id, newCat);
+    });
+  };
+
+  const handleDueDateChange = (dateTimeStr: string) => {
+    setDueDateInput(dateTimeStr);
+    const newDate = dateTimeStr ? new Date(dateTimeStr) : null;
+    startTransition(async () => {
+      await updateTaskDueDate(task.id, newDate);
     });
   };
 
@@ -90,7 +115,7 @@ export default function TaskReviewItem({ task }: { task: Task }) {
         )}
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 mb-3">
         <button
           type="button"
           onClick={() => handleToggle("important")}
@@ -116,6 +141,27 @@ export default function TaskReviewItem({ task }: { task: Task }) {
         >
           {currentUrgent ? "✓ 긴급함" : "긴급함"}
         </button>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <label className="text-sm font-medium text-gray-700">📅 마감:</label>
+        <input
+          type="datetime-local"
+          value={dueDateInput}
+          onChange={(e) => handleDueDateChange(e.target.value)}
+          disabled={isPending}
+          className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+        />
+        {dueDateInput && (
+          <button
+            type="button"
+            onClick={() => handleDueDateChange("")}
+            disabled={isPending}
+            className="text-gray-400 hover:text-gray-600 text-sm"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       {isManual && (
