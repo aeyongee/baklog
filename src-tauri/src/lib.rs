@@ -74,9 +74,9 @@ async fn start_next_server(
 
     // 프로덕션 모드에서만 Sidecar 실행
     use tauri_plugin_shell::ShellExt;
-    let shell = app.shell();
 
     let handle = tauri::async_runtime::spawn(async move {
+        let shell = app.shell();
         match shell.sidecar("next-server") {
             Ok(sidecar) => {
                 match sidecar.spawn() {
@@ -133,9 +133,8 @@ pub fn run() {
         // Next.js 서버 시작 (프로덕션 모드에서만)
         if !cfg!(debug_assertions) {
           let app_handle = app.handle().clone();
-          let state = app.state::<Mutex<ServerState>>();
           tauri::async_runtime::spawn(async move {
-            if let Err(e) = start_next_server(app_handle, state).await {
+            if let Err(e) = start_next_server(app_handle.clone(), app_handle.state::<Mutex<ServerState>>()).await {
               eprintln!("[Tauri] Failed to start Next.js server: {}", e);
             }
           });
@@ -147,16 +146,17 @@ pub fn run() {
       }
 
       // Deep Link 리스너 등록
-      #[cfg(not(target_os = "ios"))]
-      {
-        let handle = app.handle().clone();
-        tauri_plugin_deep_link::register("baklog", move |request| {
-          if request.starts_with("baklog://oauth/callback") {
-            let _ = handle.emit("oauth-callback", request);
-          }
-        })
-        .unwrap();
-      }
+      // TODO: Tauri v2 API 확인 후 재구현
+      // #[cfg(not(target_os = "ios"))]
+      // {
+      //   let handle = app.handle().clone();
+      //   tauri_plugin_deep_link::register("baklog", move |request| {
+      //     if request.starts_with("baklog://oauth/callback") {
+      //       let _ = handle.emit("oauth-callback", request);
+      //     }
+      //   })
+      //   .unwrap();
+      // }
 
       Ok(())
     })
