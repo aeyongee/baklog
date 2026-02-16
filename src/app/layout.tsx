@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TauriAuthListener } from "@/components/tauri-auth-listener";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -24,12 +25,13 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <body className={`${geistSans.variable} font-sans antialiased`}>
-        <ThemeProvider 
-          attribute="class" 
-          defaultTheme="light" 
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
           enableSystem={false}
           disableTransitionOnChange
         >
+          <TauriAuthListener />
           {children}
           <ThemeToggle />
           <Analytics />
