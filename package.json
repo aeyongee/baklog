@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && prisma migrate deploy && next build",
-    "build:tauri": "prisma generate && TAURI_BUILD=true next build",
+    "build:tauri": "prisma generate && TAURI_BUILD=true next build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public && rm -rf src-tauri/next-bundle && cp -r .next/standalone src-tauri/next-bundle",
     "start": "next start",
     "lint": "eslint",
     "simulate": "npx tsx scripts/simulate.ts",

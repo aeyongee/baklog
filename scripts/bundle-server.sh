@@ -1,16 +1,18 @@
 #!/bin/bash
 set -e
 
-echo "Building Next.js standalone..."
-npm run build:tauri
+TARGET_TRIPLE="aarch64-apple-darwin"
+BINARY_NAME="next-server-${TARGET_TRIPLE}"
 
-echo "Creating server binary..."
+echo "📦 Creating Next.js server binary..."
 mkdir -p src-tauri/binaries
 
-npx pkg scripts/server-wrapper.mjs \
+# pkg로 standalone 서버 번들링
+# Tauri sidecar 바이너리 이름 규칙: {name}-{target-triple}
+npx pkg .next/standalone/server.js \
   --targets node18-macos-arm64 \
-  --output src-tauri/binaries/next-server \
+  --output "src-tauri/binaries/${BINARY_NAME}" \
   --compress GZip
 
-chmod +x src-tauri/binaries/next-server
-echo "✓ Server binary created at src-tauri/binaries/next-server"
+chmod +x "src-tauri/binaries/${BINARY_NAME}"
+echo "✓ Server binary created: src-tauri/binaries/${BINARY_NAME}"

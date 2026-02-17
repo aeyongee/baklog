@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 const SERVICE_NAME: &str = "com.baklog.app";
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Credentials {
     pub database_url: String,
     pub openai_api_key: String,

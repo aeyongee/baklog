@@ -1,115 +1,121 @@
 use tauri::Manager;
-use std::sync::Mutex;
+use std::path::PathBuf;
 
-mod secure_storage;
+// 빌드 시 .env.keys에서 주입된 컴파일 타임 상수
+const APP_DATABASE_URL: &str = env!("BAKLOG_DATABASE_URL");
+const APP_OPENAI_API_KEY: &str = env!("BAKLOG_OPENAI_API_KEY");
+const APP_AUTH_GOOGLE_ID: &str = env!("BAKLOG_AUTH_GOOGLE_ID");
+const APP_AUTH_GOOGLE_SECRET: &str = env!("BAKLOG_AUTH_GOOGLE_SECRET");
+const APP_AUTH_SECRET: &str = env!("BAKLOG_AUTH_SECRET");
 
-struct ServerState {
-    child: Option<tauri::async_runtime::JoinHandle<()>>,
+// 포트가 이미 사용 중인지 확인
+fn is_port_in_use(port: u16) -> bool {
+    use std::net::TcpStream;
+    TcpStream::connect(format!("127.0.0.1:{}", port)).is_ok()
 }
 
-#[tauri::command]
-fn get_oauth_callback_url() -> String {
-    "baklog://oauth/callback".to_string()
-}
-
-#[tauri::command]
-async fn save_api_keys(
-    database_url: String,
-    openai_key: String,
-    google_id: String,
-    google_secret: String,
-) -> Result<(), String> {
-    use secure_storage::{save_credentials, Credentials};
-
-    let creds = Credentials {
-        database_url,
-        openai_api_key: openai_key,
-        auth_google_id: google_id,
-        auth_google_secret: google_secret,
-        auth_secret: generate_auth_secret(),
-    };
-
-    save_credentials(&creds)?;
-
-    // 환경 변수로 설정 (Next.js 서버용)
-    std::env::set_var("DATABASE_URL", &creds.database_url);
-    std::env::set_var("OPENAI_API_KEY", &creds.openai_api_key);
-    std::env::set_var("AUTH_GOOGLE_ID", &creds.auth_google_id);
-    std::env::set_var("AUTH_GOOGLE_SECRET", &creds.auth_google_secret);
-    std::env::set_var("AUTH_SECRET", &creds.auth_secret);
-
-    Ok(())
-}
-
-#[tauri::command]
-async fn check_credentials_exist() -> bool {
-    use secure_storage::load_credentials;
-    load_credentials().is_ok()
-}
-
-fn generate_auth_secret() -> String {
-    use rand::Rng;
-    let random_bytes: Vec<u8> = (0..32)
-        .map(|_| rand::thread_rng().gen())
-        .collect();
-    hex::encode(random_bytes)
-}
-
-#[tauri::command]
-async fn start_next_server(
-    app: tauri::AppHandle,
-    state: tauri::State<'_, Mutex<ServerState>>,
-) -> Result<(), String> {
-    let mut server = state.lock().unwrap();
-
-    if server.child.is_some() {
-        return Ok(()); // 이미 실행 중
+fn navigate_to_app(app_handle: &tauri::AppHandle) {
+    if let Some(window) = app_handle.get_webview_window("main") {
+        let _ = window.navigate("http://localhost:3000".parse().unwrap());
     }
+}
 
-    // 개발 모드에서는 이미 실행 중인 서버 사용
-    if cfg!(debug_assertions) {
-        println!("[Tauri] Development mode - using existing Next.js server");
-        return Ok(());
-    }
-
-    // 프로덕션 모드에서만 Sidecar 실행
+// 프로덕션 모드: node sidecar로 .next/standalone/server.js 실행
+fn start_production_server(app_handle: tauri::AppHandle) {
     use tauri_plugin_shell::ShellExt;
+    use tauri_plugin_shell::process::CommandEvent;
 
-    let handle = tauri::async_runtime::spawn(async move {
-        let shell = app.shell();
-        match shell.sidecar("next-server") {
-            Ok(sidecar) => {
-                match sidecar.spawn() {
-                    Ok((_rx, child)) => {
-                        println!("[Tauri] Next.js server started (PID: {:?})", child.pid());
-                    }
-                    Err(e) => {
-                        eprintln!("[Tauri] Failed to spawn server: {}", e);
+    tauri::async_runtime::spawn(async move {
+        let shell = app_handle.shell();
+
+        // Tauri resources 디렉토리에서 standalone 서버 경로 결정
+        let resource_dir = app_handle
+            .path()
+            .resource_dir()
+            .unwrap_or_else(|_| PathBuf::from("."));
+
+        let standalone_dir = resource_dir.join("next-bundle");
+        let server_js = standalone_dir.join("server.js");
+
+        println!("[Tauri] standalone_dir: {:?}", standalone_dir);
+        println!("[Tauri] server_js: {:?}", server_js);
+
+        let node = match shell.sidecar("node") {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("[Tauri] node sidecar 생성 실패: {}", e);
+                return;
+            }
+        };
+
+        let node = node
+            .env("DATABASE_URL", APP_DATABASE_URL)
+            .env("OPENAI_API_KEY", APP_OPENAI_API_KEY)
+            .env("AUTH_GOOGLE_ID", APP_AUTH_GOOGLE_ID)
+            .env("AUTH_GOOGLE_SECRET", APP_AUTH_GOOGLE_SECRET)
+            .env("AUTH_SECRET", APP_AUTH_SECRET)
+            .env("AUTH_URL", "http://localhost:3000")
+            .env("AUTH_TRUST_HOST", "true")
+            .env("NODE_ENV", "production")
+            .env("PORT", "3000")
+            .args([server_js.to_str().unwrap_or("server.js")])
+            .current_dir(&standalone_dir);
+
+        let (mut rx, _child) = match node.spawn() {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!("[Tauri] 서버 시작 실패: {}", e);
+                return;
+            }
+        };
+
+        println!("[Tauri] Next.js 서버 시작 중...");
+
+        while let Some(event) = rx.recv().await {
+            match event {
+                CommandEvent::Stdout(line) => {
+                    let text = String::from_utf8_lossy(&line);
+                    println!("[Server] {}", text);
+
+                    if text.contains("ready") || text.contains("Ready") {
+                        println!("[Tauri] 서버 준비 완료. 앱으로 이동...");
+                        navigate_to_app(&app_handle);
                     }
                 }
-            }
-            Err(e) => {
-                eprintln!("[Tauri] Failed to create sidecar: {}", e);
+                CommandEvent::Stderr(line) => {
+                    let text = String::from_utf8_lossy(&line);
+                    eprintln!("[Server] {}", text);
+
+                    if text.contains("ready") || text.contains("Ready") {
+                        navigate_to_app(&app_handle);
+                    }
+
+                    // 포트가 이미 사용 중이면 기존 서버로 이동
+                    if text.contains("EADDRINUSE") || text.contains("address already in use") {
+                        println!("[Tauri] 포트 3000 이미 사용 중. 기존 서버로 이동...");
+                        navigate_to_app(&app_handle);
+                        break;
+                    }
+                }
+                CommandEvent::Error(e) => {
+                    eprintln!("[Server Error] {}", e);
+                }
+                CommandEvent::Terminated(status) => {
+                    eprintln!("[Tauri] 서버 종료: {:?}", status);
+                    break;
+                }
+                _ => {}
             }
         }
     });
-
-    server.child = Some(handle);
-    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
-    .manage(Mutex::new(ServerState { child: None }))
     .plugin(tauri_plugin_deep_link::init())
     .plugin(tauri_plugin_shell::init())
-    .invoke_handler(tauri::generate_handler![
-      get_oauth_callback_url,
-      start_next_server,
-      save_api_keys,
-      check_credentials_exist
-    ])
+    .invoke_handler(tauri::generate_handler![])
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(
@@ -119,44 +125,30 @@ pub fn run() {
         )?;
       }
 
-      // Keychain에서 인증 정보 로드
-      use secure_storage::load_credentials;
-
-      if let Ok(creds) = load_credentials() {
-        // 환경 변수 설정
-        std::env::set_var("DATABASE_URL", &creds.database_url);
-        std::env::set_var("OPENAI_API_KEY", &creds.openai_api_key);
-        std::env::set_var("AUTH_GOOGLE_ID", &creds.auth_google_id);
-        std::env::set_var("AUTH_GOOGLE_SECRET", &creds.auth_google_secret);
-        std::env::set_var("AUTH_SECRET", &creds.auth_secret);
-
-        // Next.js 서버 시작 (프로덕션 모드에서만)
-        if !cfg!(debug_assertions) {
-          let app_handle = app.handle().clone();
-          tauri::async_runtime::spawn(async move {
-            if let Err(e) = start_next_server(app_handle.clone(), app_handle.state::<Mutex<ServerState>>()).await {
-              eprintln!("[Tauri] Failed to start Next.js server: {}", e);
-            }
-          });
-        }
-      } else {
-        // 첫 실행 → 설정 페이지로 리다이렉트
-        println!("[Tauri] No credentials found, user needs to configure API keys");
-        // 프론트엔드에서 /settings로 리다이렉트 처리
+      // 개발 모드에서는 이미 실행 중인 Next.js 서버 사용
+      if cfg!(debug_assertions) {
+        println!("[Tauri] 개발 모드: localhost:3000 사용");
+        return Ok(());
       }
 
-      // Deep Link 리스너 등록
-      // TODO: Tauri v2 API 확인 후 재구현
-      // #[cfg(not(target_os = "ios"))]
-      // {
-      //   let handle = app.handle().clone();
-      //   tauri_plugin_deep_link::register("baklog", move |request| {
-      //     if request.starts_with("baklog://oauth/callback") {
-      //       let _ = handle.emit("oauth-callback", request);
-      //     }
-      //   })
-      //   .unwrap();
-      // }
+      // 프로덕션: node sidecar로 서버 시작
+      std::env::set_var("DATABASE_URL", APP_DATABASE_URL);
+      std::env::set_var("OPENAI_API_KEY", APP_OPENAI_API_KEY);
+      std::env::set_var("AUTH_GOOGLE_ID", APP_AUTH_GOOGLE_ID);
+      std::env::set_var("AUTH_GOOGLE_SECRET", APP_AUTH_GOOGLE_SECRET);
+      std::env::set_var("AUTH_SECRET", APP_AUTH_SECRET);
+      std::env::set_var("AUTH_URL", "http://localhost:3000");
+      std::env::set_var("AUTH_TRUST_HOST", "true");
+
+      // 포트 3000이 이미 사용 중이면 바로 이동 (중복 실행 방지)
+      if is_port_in_use(3000) {
+        println!("[Tauri] 포트 3000 이미 사용 중. 기존 서버로 이동...");
+        navigate_to_app(app.handle());
+        return Ok(());
+      }
+
+      println!("[Tauri] 프로덕션 모드: Next.js 서버 시작");
+      start_production_server(app.handle().clone());
 
       Ok(())
     })

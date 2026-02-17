@@ -51,7 +51,9 @@ CLAUDE.md
 # Tauri
 src-tauri/target/
 src-tauri/binaries/
+src-tauri/next-bundle/
 src-tauri/.env
+src-tauri/.env.keys
 
 # macOS
 *.dmg
